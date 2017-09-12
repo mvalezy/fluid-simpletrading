@@ -23,7 +23,7 @@ class Alert {
 
     /* OBJECTS */
     public $List;
-    public $Api;
+    public $API;
 
     
     public function __construct($exchange = TRADE_EXCHANGE, $pair = TRADE_PAIR) {
@@ -126,42 +126,40 @@ class Alert {
             $this->get($id);
 
 
-        $this->Api              = new NotifyMyAndroid();
-        $this->Api->url         = "http://demo.fluid-element.com/trade";
-        $this->Api->priority    = $this->priority;
+        $this->API              = new NotifyMyAndroid();
+        $this->API->url         = "http://demo.fluid-element.com/trade";
+        $this->API->priority    = $this->priority;
 
         switch($this->operator) {
 
             case 'more':
-                $this->Api->event = "Target price reached";
-                $this->Api->description = "[$this->pair] Target price reached $this->price";
+                $this->API->event = $this->API->application = "Target price reached";
+                $this->API->description = "[$this->pair] Target price reached $this->price";
                 break;
 
             case 'less':
-                $this->Api->event = "Low price reached";
-                $this->Api->description = "[$this->pair] Low price reached $this->price";
+                $this->API->event = $this->API->application = "Low price reached";
+                $this->API->description = "[$this->pair] Low price reached $this->price";
                 break;
 
             case 'even':
-                $this->Api->event = "Price reached";
-                $this->Api->description = "[$this->pair] Price reached $this->price";
+                $this->API->event = $this->API->application = "Price reached";
+                $this->API->description = "[$this->pair] Price reached $this->price";
                 break;
 
         }
 
-        if(@$this->ledgerid)    $this->Api->description .= ". Order $this->ledgerid.";
-        if(@$price)             $this->Api->description .= ". Current price $price.";
+        if(@$this->ledgerid)    $this->API->description .= ". Order $this->ledgerid.";
+        if(@$price)             $this->API->description .= ". Current price $price.";
 
 
 
-        if($this->Api->post()) {
+        if($this->API->post()) {
 
-            $query = "UPDATE trade_alert SET status = 'sent', closeDate = NOW() WHERE id = $id LIMIT 1;";
+            $query = "UPDATE trade_alert SET status = 'sent', closeDate = NOW(), remaining = ".$this->API->remaining.", resettimer = ".$this->API->resettimer."  WHERE id = $id LIMIT 1;";
 
             $sql = $this->db->query($query);
             mysqlerr($this->db, $query);
-
-            echo "\nremaining:".$success['remaining']." - "."resettimer:".$success['resettimer'];
         }
     }
 

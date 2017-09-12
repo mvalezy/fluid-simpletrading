@@ -6,6 +6,7 @@ require_once('config/config.inc.php');
 require_once('functions.inc.php'); 
 require_once('config/kraken.api.config.php'); 
 require_once('config/nma.api.config.php'); 
+require_once('class/alert.class.php'); 
 
 // Open SQL connection
 $db = connecti();
@@ -297,6 +298,7 @@ else {
 
     // Active Alerts
     $Alert = new Alert();
+    $Alert->select();
     
 
 	
@@ -725,6 +727,33 @@ else {
                 <form id="alert" name="alert" action="index.php" method="post" class="form-horizontal require-validation" role="form">
                 
                     <div class="col-sm-12 col-lg-12">
+
+                        <div  class="col-sm-12 col-md-8 col-lg-2">
+                                <?php
+if(is_array($Alert->List) && count($Alert->List) > 0) {
+    echo "<ul>\n";
+    foreach($Alert->List as $alertDetail) {
+
+        switch($alertDetail->operator) {
+            case 'less':
+                $operator = '<';
+                break;
+            case 'more':
+                $operator = '>';
+                break;
+            case 'even':
+                $operator = '=';
+                break;
+        }
+
+        echo "<li>$operator $alertDetail->price</li>\n";
+    }
+    echo "</ul>\n";
+
+}
+                                ?>
+                        </div>
+
                         <div class="form-group">
                             
                             <div class="col-sm-4 col-md-3 col-lg-2">

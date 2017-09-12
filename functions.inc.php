@@ -15,7 +15,7 @@ $loading_start = $loading_time;
 
 
 function connect($db = SQL_DB) {
-    $link = mysql_connect(SQL_HOST, SQL_DB, SQL_PASSWORD);
+    $link = mysql_connect(SQL_HOST, SQL_USER, SQL_PASSWORD);
     if (!$link) {
         die('Could not connect: ' . mysql_error());
     }
@@ -24,7 +24,7 @@ function connect($db = SQL_DB) {
 }
 
 function connecti($db = SQL_DB) {
-        $mysqli = new mysqli(SQL_HOST, SQL_DB, SQL_PASSWORD,  $db);
+        $mysqli = new mysqli(SQL_HOST, SQL_USER, SQL_PASSWORD,  $db);
         if ($mysqli->connect_error) {
             die('Could not connect (' . $mysqli->connect_errno . ') ' . $mysqli->connect_error);
         }

@@ -4,6 +4,7 @@ require_once('config/config.inc.php');
 require_once('functions.inc.php'); 
 require_once('config/kraken.api.config.php'); 
 require_once('config/nma.api.config.php'); 
+require_once('class/alert.class.php'); 
 
 // Open SQL connection
 $db = connecti();
@@ -55,6 +56,7 @@ $Alert->select($price);
 if(is_array($Alert->List) && count($Alert->List) > 0) {
     foreach($Alert->List as $id => $detail) {
         $Alert->send($id);
+        echo "Alert:send=".$detail->price."(".$id.")\n";
     }
 }
 

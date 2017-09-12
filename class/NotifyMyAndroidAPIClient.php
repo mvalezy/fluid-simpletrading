@@ -15,11 +15,14 @@ class NotifyMyAndroid {
     public $application;
     public $url;
 
-    protected $apikey = API_KRAKEN_KEY;
+    public $remaining;
+    public $resettimer;
+
+    protected $apikey=API_KRAKEN_KEY;
 
 
     public function post() {
-            
+
         $curl = curl_init();
 
         curl_setopt_array($curl, array(
@@ -30,7 +33,14 @@ class NotifyMyAndroid {
             CURLOPT_TIMEOUT => 10,
             CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
             CURLOPT_CUSTOMREQUEST => "POST",
-            CURLOPT_POSTFIELDS => "apikey=$this->$apikey&application=$this->application&priority=$this->priority&event=".urlencode($this->event)."&description=".urlencode($this->description)."&url=".urlencode($this->url)."&content-type=text%2Fhtml",
+            CURLOPT_POSTFIELDS => 
+                "apikey=".$this->apikey.
+                "&application=".urlencode($this->application).
+                "&priority=".$this->priority.
+                "&event=".urlencode($this->event).
+                "&description=".urlencode($this->description).
+                "&url=".urlencode($this->url).
+                "&content-type=text%2Fhtml",
             CURLOPT_HTTPHEADER => array(
                 "cache-control: no-cache",
                 "Accept: application/json",
@@ -61,6 +71,8 @@ class NotifyMyAndroid {
             if(isset($result['success']) && isset($result['success']['@attributes'])) {
                 $success = $result['success']['@attributes'];
                 if($success['code'] == 200) {
+                    $this->remaining    = $success['remaining'];
+                    $this->resettimer   = $success['resettimer'];
                     return true;
                 }
                 else
