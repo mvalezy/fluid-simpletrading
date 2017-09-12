@@ -1,0 +1,7 @@
+AuthUserFile /kunden/homepages/23/d202161969/htdocs/demo/simpletrader/config/.htpasswd
+AuthName "Fluid Access"
+AuthType Basic
+
+<limit GET POST>
+require valid-user
+</limit>

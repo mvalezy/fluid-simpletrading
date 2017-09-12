@@ -1,0 +1,5 @@
+X-Powered-By: PHP/5.4.45
+Content-type: text/html
+
+<br />
+<b>Fatal error</b>:  Multiple access type modifiers are not allowed in <b>/homepages/23/d202161969/htdocs/demo/trade/class/alert.class.php</b> on line <b>26</b><br />
