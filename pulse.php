@@ -1,9 +1,10 @@
 <?php
 
-require_once('config/config.inc.php');
 require_once('functions.inc.php'); 
+require_once('config/config.inc.php');
 require_once('config/kraken.api.config.php'); 
 require_once('config/nma.api.config.php'); 
+require_once('class/history.class.php'); 
 require_once('class/alert.class.php'); 
 
 // Open SQL connection
@@ -22,43 +23,51 @@ else $debug = 0;
 /*
  * PULSE
  * Recommended cycle : 1 min
-*/
+ */
 
 
 /*
  * TICKER
  * QUERY Current Price
-*/
+ */
 $res = $kraken->QueryPublic('Ticker', array('pair' => TRADE_PAIR ));
 if(isset($res['result'])) {
     if(isset($res['result'][TRADE_PAIR]['c']['0'])) {
         $price = $res['result'][TRADE_PAIR]['c']['0'];
 
         echo "Ticker:".TRADE_PAIR."=".$price."\n";
-        
-        // Store Price
-        $query_ins = "INSERT INTO trade_history SET echange = '".TRADE_EXCHANGE."', pair = '".TRADE_PAIR."', price = '$price' ;";
-        $sql_ins = $db->query($query_ins);
-        mysqlerr($db, $query_ins);
+
+        $History = new History();
+        $History->add($price);
     }
 }
-
-//$query = "SELECT id FROM trade_history WHERE addDate > (NOW() - INTERVAL ($ticker*60) SECOND)";
 
 /*
  * ALERT
  * SEND Notifications
-*/
+ */
 
 $Alert = new Alert();
 $Alert->select($price);
 
 if(is_array($Alert->List) && count($Alert->List) > 0) {
     foreach($Alert->List as $id => $detail) {
-        $Alert->send($id);
         echo "Alert:send=".$detail->price."(".$id.")\n";
+        
+        $Alert->send($id);
     }
 }
+
+
+
+/*
+ * AUTOMATIC ORDER
+ * STOP-LOSS / TAKE-PROFIT
+ */
+
+
+
+
 
 
 

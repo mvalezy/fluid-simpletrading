@@ -6,6 +6,7 @@ require_once('config/config.inc.php');
 require_once('functions.inc.php'); 
 require_once('config/kraken.api.config.php'); 
 require_once('config/nma.api.config.php'); 
+require_once('class/history.class.php'); 
 require_once('class/alert.class.php'); 
 
 // Open SQL connection
@@ -273,17 +274,18 @@ else {
     }
 
 
-    // Google Chart on Ledger
-    $query = "SELECT price, addDate FROM trade_history ORDER BY addDate DESC LIMIT 50";
-    $sql = $db->query($query);
-    mysqlerr($db, $query);
+    // Google Chart on History
+    $History = new History();
+    $History->select();
 
-    if(isset($sql->num_rows) && $sql->num_rows > 0) {
+    if(isset($History->List) && is_array($History->List) && count($History->List) > 0) {
+
         $i=0;
         $googleChartData = array();
-        while($row = $sql->fetch_object()) {
+
+        foreach($History->List as $id => $detail) {
             $googleChartData[$i] = new stdClass();
-            $googleChartData[$i] = $row;
+            $googleChartData[$i] = $detail;
             $i++;
         }
 
