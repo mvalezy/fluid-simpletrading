@@ -2,15 +2,26 @@
 
 ob_start();
 
+// CONFIG
 require_once('config/config.inc.php');
+
+// UTILS AND THIRD PARTY
 require_once('functions.inc.php'); 
 require_once('config/kraken.api.config.php'); 
 require_once('config/nma.api.config.php'); 
+
+// Class
+require_once('class/error.class.php'); 
 require_once('class/history.class.php'); 
-require_once('class/alert.class.php'); 
+require_once('class/ledger.class.php'); 
+require_once('class/alert.class.php');
+
 
 // Open SQL connection
 $db = connecti();
+
+// Initiate vars
+$message = array();
 
 // Query Data
 if(isset($_GET['debug']) && $_GET['debug'] > 0) { $debug = $_GET['debug']; }
@@ -31,7 +42,7 @@ if(!$purge && isset($_COOKIE["SimpleKraken"]) && $_COOKIE["SimpleKraken"]) {
     $cookie     = json_decode($_COOKIE["SimpleKraken"], true);
     $Last       = $cookie['Last'];
     $Balance    = $cookie['Balance'];
-    $OpenOrders = $cookie['OpenOrders'];
+    $openOrders = $cookie['openOrders'];
 
     $cache = " - Cached: ";
 
@@ -45,44 +56,38 @@ if(!$purge && isset($_COOKIE["SimpleKraken"]) && $_COOKIE["SimpleKraken"]) {
  */
 
 
-if(isset($_POST['postOrder']) && $_POST['postOrder']) {
+if(isset($_POST['addOrder']) && $_POST['addOrder']) {
 
     /*
     * POST ORDER
     */
 
-    if(!isset($_POST['volume']) || !$_POST['volume']) {
-        $error = new stdClass();
-        $error->type    = 'danger';
-        $error->message = 'Volume is not set';
-        $message[] = $error;
-    }
+    if(!isset($_POST['volume']) || !$_POST['volume'])
+        $message[] = new ErrorMessage('danger', 'Volume is not set');
 
-    if(!isset($_POST['priceOrder']) || !$_POST['priceOrder']) {
-        $error = new stdClass();
-        $error->type    = 'danger';
-        $error->message = 'Price is not set';
-        $message[] = $error;
+    if(!isset($_POST['price']) || !$_POST['price']) {
+        $message[] = new ErrorMessage('danger', 'Price is not set');
+
     }
 
     if(!isset($error->message)) {
 
-        if($_POST['order'] == 'buy') {
+        if($_POST['orderAction'] == 'buy') {
             $oflags = 'fciq';
 
             $volume = round( $_POST['volume']-0.0001, 4, PHP_ROUND_HALF_DOWN);
-            $price  = round($_POST['priceOrder'], 3);
+            $price  = round($_POST['price'], 3);
         }
         else {
             $oflags = 'fcib';
 
             $volume = round( $_POST['volume']-0.0001, 4, PHP_ROUND_HALF_DOWN);
-            $price  = round($_POST['priceOrder'], 3);
+            $price  = round($_POST['price'], 3);
         }
 
         /*$res = $kraken->QueryPrivate('AddOrder', array(
-            'pair'      => 'XETHZEUR',
-            'order'      => $_POST['order'], 
+            'pair'      => TRADE_PAIR,
+            'order'      => $_POST['orderAction'], 
             'oflags'    => $oflags,
 
             'ordertype' => $_POST['type'], 
@@ -92,45 +97,36 @@ if(isset($_POST['postOrder']) && $_POST['postOrder']) {
 
         krumo($res);*/
 
-        // Store Success Order & Create new Alert
-        $Alert = new Alert();
+        // Store Success Order
+        $Ledger = new Ledger();
+        $Ledger->getVars($_POST);
 
-        $orderReference = $res['result']['txid']['0'];
-        $query_ins = "INSERT INTO trade_ledger SET exchange = '".TRADE_EXCHANGE."', pair = '".TRADE_PAIR."', action = '".$_POST['order']."', volume = '$volume', price = '$price', total = '".round($volume * $price, 3)."', reference = '$orderReference'";
+        $Ledger->volume     = $volume;
+        $Ledger->price      = $price;
+        $Ledger->reference  = $res['result']['txid']['0'];
 
+
+        // Create new Alert
+        $Alert  = new Alert();
         if($_POST['takeProfit_active'] == 1) {
-            $query_ins .= ", takeProfit = '".round($price * (1 + $_POST['takeProfit'] / 100), 3)."'";
             $Alert->add(round($price * (1 + $_POST['takeProfit'] / 2 / 100), 3), 'more');
         }
 
         if($_POST['stopLoss_active'] == 1) {
-            $query_ins .= ", stopLoss = '".round($price / (1 + $_POST['stopLoss'] / 100), 3)."'";
             $Alert->add(round($price / (1 + $_POST['stopLoss'] / 2 / 100), 3), 'less');
         }
-
-        $query_ins .= ";";
-
-        $sql_ins = $db->query($query_ins);
-        mysqlerr($db, $query_ins);
 
 
         // IF Error
         if(isset($res['error']) && is_array($res['error']) && count($res['error']) > 0) {
             foreach($res['error'] as $resmessage) {
-                $error = new stdClass();
-                $error->type    = 'danger';
-                $error->message = $resmessage;
-                $message[] = $error;
+                $message[] = new ErrorMessage('danger', $resmessage);
                 $retry = 1;
             }
         }
         // ELSE (Order OK)
         elseif(isset($res['result']) && is_array($res['result']) && count($res['result']) > 0) {
-            $result = new stdClass();
-            $result->type    = 'success';
-            $result->message = $res['result']['descr']['order'];
-            $message[] = $result;
-
+            $message[] = new ErrorMessage('success', $res['result']['descr']['order']);
             // Delete Cookie
             setcookie("SimpleKraken", '', 1);
         }
@@ -150,21 +146,14 @@ elseif(isset($_POST['addAlert']) && $_POST['addAlert'] == 1) {
      */
 
 
-    if(!isset($_POST['priceAlert']) || !$_POST['priceAlert']) {
-        $error = new stdClass();
-        $error->type    = 'danger';
-        $error->message = 'Price is not set';
-        $message[] = $error;
-    }
-
+    if(!isset($_POST['priceAlert']) || !$_POST['priceAlert'])
+        $message[] = new ErrorMessage('danger', 'Price is not set');
+	
     $Alert = new Alert();
 
     $Alert->add($_POST['priceAlert'], $_POST['operator']);
 
-    $result = new stdClass();
-    $result->type    = 'success';
-    $result->message = "New alert at ".$_POST['operator']." ".$_POST['priceAlert']." posted.";
-    $message[] = $result;
+    $message[] = new ErrorMessage('success', "New alert at ".$_POST['operator']." ".$_POST['priceAlert']." posted.");
 
 } // END ADD ALERT
 
@@ -181,20 +170,14 @@ else {
 
         if(isset($res['error']) && is_array($res['error']) && count($res['error']) > 0) {
             foreach($res['error'] as $resmessage) {
-                $error = new stdClass();
-                $error->type    = 'danger';
-                $error->message = $resmessage;
-                $message[] = $error;
+                $message[] = new ErrorMessage('danger', $resmessage);
                 $retry = 1;
             }
         }
         elseif(isset($res['result']) && is_array($res['result']) && count($res['result']) > 0) {
-            $result = new stdClass();
-            $result->type    = 'success';
-            $result->message = 'Order '.$_GET['cancel']. ' canceled';
-            $message[] = $result;
+            $message[] = new ErrorMessage('success', 'Order '.$_GET['cancel']. ' canceled');
 
-            unset($OpenOrders);
+            unset($openOrders);
         }
     }
 
@@ -205,10 +188,10 @@ else {
 
     // Query Last ETH price 
     if(!isset($Last)) {
-        $res = $kraken->QueryPublic('Ticker', array('pair' => 'XETHZEUR'));
+        $res = $kraken->QueryPublic('Ticker', array('pair' => TRADE_PAIR));
         if(isset($res['result'])) {
-            if(isset($res['result']['XETHZEUR']['c']['0'])) {
-                $Last = $res['result']['XETHZEUR']['c']['0'];
+            if(isset($res['result'][TRADE_PAIR]['c']['0'])) {
+                $Last = $res['result'][TRADE_PAIR]['c']['0'];
             }
             else $Last = 0;
         } else {
@@ -235,13 +218,13 @@ else {
     } else $cache .= " balance ";
 
     // Query Orders
-    if(!isset($OpenOrders)) {
-        $res = $kraken->QueryPrivate('OpenOrders', array('trades' => true));
+    if(!isset($openOrders)) {
+        $res = $kraken->QueryPrivate('openOrders', array('trades' => true));
         if(isset($res['result'])) {
-            $OpenOrders = $res['result'];
+            $openOrders = $res['result'];
         }
         else {
-            $OpenOrders['open'] = array();
+            $openOrders['open'] = array();
             output($res['error'], 'warning');
         }
 
@@ -252,12 +235,12 @@ else {
     // Buy or Sell ?
     $ETHValue = $Balance['XETH'] * $Last;
     if($Balance['ZEUR'] >= $ETHValue) {
-            $order_default = 'buy';
+            $orderDefault = 'buy';
             $cssEUR = 'info';
             $cssETH = 'default';
     }
     else {
-        $order_default = 'sell';
+        $orderDefault = 'sell';
         $cssEUR = 'default';
         $cssETH = 'info';
     }
@@ -268,7 +251,7 @@ else {
         $cookie = array();
         $cookie['Balance']      = $Balance;
         $cookie['Last']         = $Last;
-        $cookie['OpenOrders']   = $OpenOrders;
+        $cookie['openOrders']   = $openOrders;
 
         setcookie("SimpleKraken", json_encode($cookie), time()+3600);
     }
@@ -315,7 +298,7 @@ ob_flush();
         <meta http-equiv="Content-type" content="text/html; charset=utf-8">
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
-        <title>Simple Kraken Beta</title>
+        <title>Simple Trader Beta</title>
         
         <script src="//code.jquery.com/jquery-3.1.0.min.js" integrity="sha256-cCueBR6CsyA4/9szpPfrX3s49M9vUU5BgtiJj06wt/s=" crossorigin="anonymous"></script>
     
@@ -397,10 +380,10 @@ ob_flush();
         <script type="text/javascript">
             $(document).ready(function() {
 
-                $("#priceOrder").keyup(function() {
+                $("#price").keyup(function() {
 
-                    var order  = $("#order input[type='radio']:checked").val();
-                    var price = $("#priceOrder").val();
+                    var order  = $("#orderAction input[type='radio']:checked").val();
+                    var price = $("#price").val();
 
                     if(order == 'buy') {
                         var total = $("#total").val();
@@ -506,7 +489,7 @@ if(count($message) > 0) {
     }
 }
 
-if(isset($_POST['postOrder']) && $_POST['postOrder']) {
+if(isset($_POST['addOrder']) && $_POST['addOrder']) {
 
  
 } // END POST ORDER
@@ -541,11 +524,12 @@ else {
                         <div class="row">
 
                             <div class="col-sm-12 col-lg-12">
-                                <h3>Orders</h3>
+                                <h3>Pending Orders</h3>
                                 <div class="row">
                                     
                     <?php
-                                        foreach($OpenOrders['open'] as $OrderID => $OrderContent) {
+	  								if(is_array($openOrders['open']) && count($openOrders['open']) > 0)
+                                        foreach($openOrders['open'] as $OrderID => $OrderContent) {
                     ?>
                                             <div class="col-sm-12 col-lg-12">
                                                 <?php echo $OrderContent['descr']['order']; ?>
@@ -576,7 +560,7 @@ else {
 
                 <h3>Create Order</h3>
 
-                <form id="order" name="order" action="index.php" method="post" class="form-horizontal require-validation" role="form">
+                <form id="createOrder" name="createOrder" action="index.php" method="post" class="form-horizontal require-validation" role="form">
 
 
                     <!--     <div class='form-group required'>
@@ -593,13 +577,13 @@ else {
                             <div class="col-md-6">
                                 <div class="radio">
                                     <label>
-                                        <input type="radio" name="order" id="order1" value="buy"<?php if($order_default == 'buy') { echo ' checked'; } ?>>
+                                        <input type="radio" name="orderAction" id="orderAction1" value="buy"<?php if($orderDefault == 'buy') { echo ' checked'; } ?>>
                                         Buy
                                     </label>
                                 </div>
                                 <div class="radio">
                                     <label>
-                                        <input type="radio" name="order" id="order2" value="sell"<?php if($order_default == 'sell') { echo ' checked'; } ?>>
+                                        <input type="radio" name="orderAction" id="orderAction2" value="sell"<?php if($orderDefault == 'sell') { echo ' checked'; } ?>>
                                         Sell
                                     </label>
                                 </div>
@@ -631,7 +615,7 @@ else {
                                 <div class="input-group">
                                 <input type="text" class="form-control" id="volume" name="volume" <?php
                                 
-                                if($order_default == 'buy') {
+                                if($orderDefault == 'buy') {
                                     echo 'value="'.round($Balance['ZEUR']/$Last,5).'"';
                                 }
                                 else {
@@ -647,10 +631,10 @@ else {
 
                         <div class="col-sm-12 col-md-6 col-lg-4">
                         <div class="form-group required">
-                            <label for="priceOrder" class="control-label col-md-4">Price</label>
+                            <label for="price" class="control-label col-md-4">Price</label>
                             <div class="col-md-8">
                                 <div class="input-group">
-                                <input type="text" class="form-control" id="priceOrder" name="priceOrder" value="<?php echo $Last; ?>">
+                                <input type="text" class="form-control" id="price" name="price" value="<?php echo $Last; ?>">
                                 <div class="input-group-addon">EUR</div>
                                 </div>
                             </div>  
@@ -664,7 +648,7 @@ else {
                                 <div class="input-group">
                                 <input type="text" class="form-control" id="total" name="total" <?php
                                 
-                                if($order_default == 'buy') {
+                                if($orderDefault == 'buy') {
                                     echo 'value="'.round($Balance['ZEUR'],4).'"';
                                 }
                                 else {
@@ -716,7 +700,7 @@ else {
 
                     <div class="col-sm-12 col-lg-12">
                         <div class="form-group">
-                                <input type="hidden" name="postOrder" value="1" />
+                                <input type="hidden" name="addOrder" value="1" />
                                 <button type="submit" name="submitOrder" class="btn btn-success btn-lg btn-block"><span class="glyphicon glyphicon-plus-sign"></span> Post Order</button>
                         </div>
                     </div>
@@ -726,7 +710,7 @@ else {
 
 
                 <h3>Android notifications</h3>
-                <form id="alert" name="alert" action="index.php" method="post" class="form-horizontal require-validation" role="form">
+                <form id="createAlert" name="createAlert" action="index.php" method="post" class="form-horizontal require-validation" role="form">
                 
                     <div class="col-sm-12 col-lg-12">
 

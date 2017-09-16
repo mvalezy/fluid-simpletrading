@@ -13,6 +13,7 @@ class Alert {
     /* STRINGS */
     public $id;
     public $exchange;
+    public $pair;
     public $ledgerid;
     public $operator;
     public $price;
