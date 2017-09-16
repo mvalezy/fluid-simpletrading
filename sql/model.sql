@@ -2,8 +2,8 @@
 -- version 4.1.14.8
 -- http://www.phpmyadmin.net
 --
--- Client :  db578.1and1.fr
--- Généré le :  Sam 16 Septembre 2017 à 15:50
+-- Client :  db510.1and1.fr
+-- Généré le :  Mar 12 Septembre 2017 à 22:39
 -- Version du serveur :  5.5.57-0+deb7u1-log
 -- Version de PHP :  5.4.45-0+deb7u11
 
@@ -17,7 +17,7 @@ SET time_zone = "+00:00";
 /*!40101 SET NAMES utf8 */;
 
 --
--- Base de données :  `db204928649`
+-- Base de données :  `db202171217`
 --
 
 -- --------------------------------------------------------
@@ -42,7 +42,7 @@ CREATE TABLE IF NOT EXISTS `trade_alert` (
   KEY `ledgerid` (`ledgerid`),
   KEY `addDate` (`addDate`),
   KEY `status` (`status`)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8 AUTO_INCREMENT=26 ;
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8 AUTO_INCREMENT=14 ;
 
 -- --------------------------------------------------------
 
@@ -59,7 +59,7 @@ CREATE TABLE IF NOT EXISTS `trade_history` (
   PRIMARY KEY (`id`),
   KEY `AddDate` (`addDate`),
   KEY `Price` (`price`)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8 AUTO_INCREMENT=8976 ;
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8 AUTO_INCREMENT=3654 ;
 
 -- --------------------------------------------------------
 
@@ -69,12 +69,10 @@ CREATE TABLE IF NOT EXISTS `trade_history` (
 
 CREATE TABLE IF NOT EXISTS `trade_ledger` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
-  `parentid` int(11) unsigned DEFAULT NULL,
   `exchange` varchar(20) NOT NULL,
   `pair` varchar(10) NOT NULL,
   `reference` varchar(50) DEFAULT NULL,
-  `orderAction` enum('buy','sell') NOT NULL DEFAULT 'buy',
-  `type` enum('limit','market') NOT NULL DEFAULT 'limit',
+  `action` enum('buy','sell') NOT NULL DEFAULT 'buy',
   `volume` decimal(10,6) NOT NULL,
   `price` decimal(10,4) NOT NULL,
   `total` decimal(10,4) NOT NULL,
@@ -84,7 +82,7 @@ CREATE TABLE IF NOT EXISTS `trade_ledger` (
   `addDate` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `closeDate` timestamp NOT NULL DEFAULT '0000-00-00 00:00:00',
   PRIMARY KEY (`id`)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8 AUTO_INCREMENT=9 ;
+) ENGINE=MyISAM DEFAULT CHARSET=utf8 AUTO_INCREMENT=1 ;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
 /*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;

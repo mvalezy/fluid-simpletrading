@@ -17,12 +17,14 @@ class Ledger {
     public $pair;
     public $reference;
     public $orderAction;
+    public $type;
     public $volume;
     public $price;
     public $total;
     public $takeProfit;
     public $stopLoss;
     public $status;
+    public $scalp='none';
     public $addDate;
     public $closeDate;
 
@@ -30,18 +32,22 @@ class Ledger {
     public $takeProfit_active;
     public $stopLoss_active;
 
+    public $takeProfit_rate;
+    public $stopLoss_rate;
+
+    public $alert;
+
     /* OBJECTS */
     public $List;
     public $API;
 
     
-    public function __construct($exchange = TRADE_EXCHANGE, $pair = TRADE_PAIR) {
+    public function __construct($alert = 0, $exchange = TRADE_EXCHANGE, $pair = TRADE_PAIR) {
         global $db;
         $this->db = $db;
 
         $this->exchange = $exchange;
-        $this->pair     = $pair;
-        
+        $this->pair     = $pair;       
     }
 
 
@@ -54,34 +60,82 @@ class Ledger {
                 }
 
             }
+
+            $this->total        = $this->price * $this->volume;
+            $this->takeProfit   = $this->price * (1 + $this->takeProfit_rate / 100);
+            $this->stopLoss     = $this->price / (1 + $this->stopLoss_rate / 100);
+
+            if($this->takeProfit || $this->stopLoss)
+                $this->scalp = 'pending';
         }
     }
 
+    public function round() {
+        $this->volume       = round($this->volume-0.0001, 4, PHP_ROUND_HALF_DOWN);
+        $this->price        = round($this->price, 3);
+        $this->priceWish    = round($this->priceWish, 3);
+        $this->total        = round($this->total, 3);
+        $this->takeProfit   = round($this->takeProfit, 3);
+        $this->stopLoss     = round($this->stopLoss, 3);
+    }
 
-    public function add($price, $operator = 'less') {
+
+    public function add() {
 
         $query_ins = "INSERT INTO trade_ledger SET exchange = '$this->exchange',
         pair = '$this->pair',
         orderAction = '$this->orderAction',
+        type = '$this->type',
         volume = '$this->volume',
         price = '$this->price',
-        total = '".round($volume * $price, 3)."',
-        reference = '$reference'";
+        total = '$this->total',
+        scalp = '$this->scalp'";
+
+        if($this->reference)
+            $query_ins .= ", reference = '$this->reference'";
 		
 		if($this->parentid)
-			$query_ins .= ", parentid = $this->parentid";
+            $query_ins .= ", parentid = $this->parentid";
+            
+        if($this->priceWish)
+            $query_ins .= ", priceWish = '$this->priceWish'";
         
         if($this->takeProfit_active == 1)
-            $query_ins .= ", takeProfit = '".round($price * (1 + $takeProfit / 100), 3)."'";
+            $query_ins .= ", takeProfit = '$this->takeProfit'";
 
         if($this->stopLoss_active == 1)
-            $query_ins .= ", stopLoss = '".round($price / (1 + $stopLoss / 100), 3)."'";
+            $query_ins .= ", stopLoss = '$this->stopLoss'";
 
         $query_ins .= ";";
 
         $sql_ins = $this->db->query($query_ins);
         mysqlerr($this->db, $query_ins);
 
+        $this->id = $this->db->insert_id;
+    }
+
+    public function close($id) {
+        
+        $query = "UPDATE trade_ledger SET reference = '$this->reference', status = 'closed' WHERE id = $id;";
+
+        $sql = $this->db->query($query);
+        mysqlerr($this->db, $query);
+
+        // SEND Immediate Alert
+        $this->get($id);
+        $Alert  = new Alert($Ledger->id);
+        $Alert->add($this->price, 'now');
+        $Alert->send($Alert->id, $this->price);
+        
+    }
+
+    public function closeScalp($id) {
+        
+        $query = "UPDATE trade_ledger SET scalp = 'closed' WHERE id = $id;";
+
+        $sql = $this->db->query($query);
+        mysqlerr($this->db, $query);
+        
     }
 
 
@@ -94,34 +148,53 @@ class Ledger {
         if(isset($sql->num_rows) && $sql->num_rows > 0) {
             $this->List = array();
             while($row = $sql->fetch_object()) {
-
 				$this->List[$row->id] = $row;
-
-				
-                /*$this->List[$row->id] = new stdClass();
-				
-                $this->List[$row->id]->id       	= $row->id;
-                $this->List[$row->id]->parentid     = $row->parentid;
-				$this->List[$row->id]->exchange    	= $row->exchange;
-                $this->List[$row->id]->pair  		= $row->pair;
-				$this->List[$row->id]->reference    = $row->reference;
-                $this->List[$row->id]->orderAction  = $row->orderAction;
-                $this->List[$row->id]->volume  		= $row->volume;
-				$this->List[$row->id]->price       	= $row->price;
-                $this->List[$row->id]->total    	= $row->total;
-                $this->List[$row->id]->takeProfit  	= $row->takeProfit;
-				$this->List[$row->id]->stopLoss		= $row->stopLoss;
-				$this->List[$row->id]->status		= $row->status;
-                $this->List[$row->id]->addDate    	= $row->addDate;
-                $this->List[$row->id]->closeDate  	= $row->closeDate;*/
-
             }
         }
     }
-    
+
+    public function selectScalp($price) {
+        $query = "SELECT * FROM trade_ledger WHERE scalp = 'pending' AND ( 
+            (orderAction = 'buy' AND takeProfit IS NOT NULL AND takeProfit < $price) OR
+            (orderAction = 'buy' AND stopLoss   IS NOT NULL AND stopLoss   > $price)
+            );";        
+        
+        $sql = $this->db->query($query);
+        mysqlerr($this->db, $query);
+
+        if(isset($sql->num_rows) && $sql->num_rows > 0) {
+            $this->List = array();
+            while($row = $sql->fetch_object()) {
+				$this->List[$row->id] = $row;
+            }
+        }
+    }
+
 
     public function get($id) {
+        $query = "SELECT * FROM trade_ledger WHERE id = '$id';";
+        $sql = $this->db->query($query);
+        mysqlerr($this->db, $query);
 
+        if(isset($sql->num_rows) && $sql->num_rows > 0) {
+            $row                = $sql->fetch_object();
+
+            $this->id       	= $row->id;
+            $this->parentid     = $row->parentid;
+            $this->exchange    	= $row->exchange;
+            $this->pair  		= $row->pair;
+            $this->reference    = $row->reference;
+            $this->orderAction  = $row->orderAction;
+            $this->type         = $tow->type;
+            $this->volume  		= $row->volume;
+            $this->price       	= $row->price;
+            $this->total    	= $row->total;
+            $this->takeProfit  	= $row->takeProfit;
+            $this->stopLoss		= $row->stopLoss;
+            $this->status		= $row->status;
+            $this->addDate    	= $row->addDate;
+            $this->closeDate  	= $row->closeDate;
+        }
     }
 
 

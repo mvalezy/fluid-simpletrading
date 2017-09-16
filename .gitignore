@@ -3,3 +3,4 @@ config/nma.api.config.php
 config/kraken.api.config.php
 config/config.inc.php
 config/.htpasswd
+config/notifymyandroid.api.config.php

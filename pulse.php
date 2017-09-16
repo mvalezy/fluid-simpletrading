@@ -9,7 +9,7 @@ require_once('config/kraken.api.config.php');
 require_once('config/nma.api.config.php'); 
 
 // Class
-require_once('class/error.class.php'); 
+require_once('class/error.class.php');
 require_once('class/history.class.php'); 
 require_once('class/ledger.class.php'); 
 require_once('class/alert.class.php');
@@ -43,7 +43,7 @@ if(isset($res['result'])) {
     if(isset($res['result'][TRADE_PAIR]['c']['0'])) {
         $price = $res['result'][TRADE_PAIR]['c']['0'];
 
-        echo "Ticker:".TRADE_PAIR."=".$price."\n";
+        echo "Ticker:".TRADE_PAIR."=$price\n";
 
         $History = new History();
         $History->add($price);
@@ -60,9 +60,35 @@ $Alert->select($price);
 
 if(is_array($Alert->List) && count($Alert->List) > 0) {
     foreach($Alert->List as $id => $detail) {
-        echo "Alert:send=".$detail->price."(".$id.")\n";
+        echo "Alert:send=$detail->price($id)\n";
         
-        $Alert->send($id);
+        $Alert->send($id, $price);
+    }
+}
+
+/*
+ * LEDGER
+ * BUY / SELL at StopLoss or TakeProfit
+ */
+ $Ledger = new Ledger();
+ $Ledger->selectScalp($price);
+ krumo($Ledger);
+
+ if(is_array($Ledger->List) && count($Ledger->List) > 0) {
+    foreach($Ledger->List as $id => $detail) {
+        echo "Ledger:scalp=sell $detail->volume-$price($id)\n";
+
+        $Ledger->closeScalp($id);
+
+        $Ledger->parentid       = $id;
+        $Ledger->orderAction    = 'sell';
+        $Ledger->type           = 'market';
+        $Ledger->priceWish      = $price;
+        $Ledger->volume         = $detail->volume;
+
+        $Ledger->add();
+        $Ledger->reference = 'XXXX'; // DEBUG
+        $Ledger->close($Ledger->id);
     }
 }
 

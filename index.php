@@ -33,6 +33,9 @@ if(isset($_GET['purge']) && $_GET['purge'] == 1) {
 }
 else $purge = 0;
 
+if($debug)
+    krumo($_POST);
+
 
 /*
  * CALL BACK COOKIE
@@ -62,88 +65,99 @@ if(isset($_POST['addOrder']) && $_POST['addOrder']) {
     * POST ORDER
     */
 
-    if(!isset($_POST['volume']) || !$_POST['volume'])
+    $Ledger = new Ledger();
+    $Ledger->getVars($_POST);
+
+    if(!isset($Ledger->volume) || !$Ledger->volume)
         $message[] = new ErrorMessage('danger', 'Volume is not set');
 
-    if(!isset($_POST['price']) || !$_POST['price']) {
+    if(!isset($Ledger->price) || !$Ledger->price) {
         $message[] = new ErrorMessage('danger', 'Price is not set');
 
     }
 
     if(!isset($error->message)) {
 
-        if($_POST['orderAction'] == 'buy') {
+        if($Ledger->orderAction == 'buy') {
             $oflags = 'fciq';
-
-            $volume = round( $_POST['volume']-0.0001, 4, PHP_ROUND_HALF_DOWN);
-            $price  = round($_POST['price'], 3);
         }
         else {
             $oflags = 'fcib';
+       }
 
-            $volume = round( $_POST['volume']-0.0001, 4, PHP_ROUND_HALF_DOWN);
-            $price  = round($_POST['price'], 3);
-        }
+       $Ledger->round();
 
+
+        // POST Exchange Order
         /*$res = $kraken->QueryPrivate('AddOrder', array(
             'pair'      => TRADE_PAIR,
-            'order'      => $_POST['orderAction'], 
+            'order'      => $Ledger->orderAction, 
             'oflags'    => $oflags,
 
-            'ordertype' => $_POST['type'], 
-            'volume'    => $volume,
-            'price'     => $price,
+            'ordertype' => $Ledger->type, 
+            'volume'    => $Ledger->volume,
+            'price'     => $Ledger->price,
         ));
 
         krumo($res);*/
 
-        // Store Success Order
-        $Ledger = new Ledger();
-        $Ledger->getVars($_POST);
+        // STORE Success Order
+        $Ledger->add();
 
-        $Ledger->volume     = $volume;
-        $Ledger->price      = $price;
-        $Ledger->reference  = $res['result']['txid']['0'];
+        if($debug)
+            krumo($Ledger);
 
 
-        // Create new Alert
-        $Alert  = new Alert();
-        if($_POST['takeProfit_active'] == 1) {
-            $Alert->add(round($price * (1 + $_POST['takeProfit'] / 2 / 100), 3), 'more');
+        // Schedule new Alerts
+        $Alert  = new Alert($Ledger->id);
+        if($Ledger->takeProfit_active == 1) {
+            //$Alert->add($Ledger->takeProfit, 'even'); // Sell alert
+            $Alert->add(round($Ledger->price * (1 + $Ledger->takeProfit_rate / 2 / 100), 3), 'more'); // Reach alert
         }
 
-        if($_POST['stopLoss_active'] == 1) {
-            $Alert->add(round($price / (1 + $_POST['stopLoss'] / 2 / 100), 3), 'less');
+        if($Ledger->stopLoss_active == 1) {
+            //$Alert->add($Ledger->stopLoss, 'even'); // Sell alert
+            $Alert->add(round($Ledger->price / (1 + $Ledger->stopLoss_rate / 2 / 100), 3), 'less'); // Reach alert
         }
 
 
-        // IF Error
+        /*// IF Error
         if(isset($res['error']) && is_array($res['error']) && count($res['error']) > 0) {
             foreach($res['error'] as $resmessage) {
                 $message[] = new ErrorMessage('danger', $resmessage);
                 $retry = 1;
             }
-        }
+        }*/
         // ELSE (Order OK)
-        elseif(isset($res['result']) && is_array($res['result']) && count($res['result']) > 0) {
+        /*elseif(isset($res['result']) && is_array($res['result']) && count($res['result']) > 0) {
+
+            // STORE Reference of Last Order
+            $Ledger->reference  = $res['result']['txid']['0'];*/
+
+            $Ledger->reference = 'XXXX'; // DEBUG
+            $Ledger->close($Ledger->id);
+
             $message[] = new ErrorMessage('success', $res['result']['descr']['order']);
+
             // Delete Cookie
             setcookie("SimpleKraken", '', 1);
-        }
+        /*}
         else {
             krumo($res);
-        }
+        }*/
 
         
     }
  
 } // END POST ORDER
 
+
+/*
+ * ALERT
+ */
 elseif(isset($_POST['addAlert']) && $_POST['addAlert'] == 1) {
 
-    /*
-     * ALERT
-     */
+
 
 
     if(!isset($_POST['priceAlert']) || !$_POST['priceAlert'])
@@ -186,7 +200,7 @@ else {
     */
 
 
-    // Query Last ETH price 
+    // Query Last Exhange PAIR price 
     if(!isset($Last)) {
         $res = $kraken->QueryPublic('Ticker', array('pair' => TRADE_PAIR));
         if(isset($res['result'])) {
@@ -202,7 +216,7 @@ else {
         $setcookie = 1;
     } else $cache .= " cookie ";
 
-    // Query Balance
+    // Query Exchange Balance
     if(!isset($Balance['ZEUR']) || !isset($Balance['XETH'])) {
         $res = $kraken->QueryPrivate('Balance');
         if(isset($res['result'])) {
@@ -217,7 +231,7 @@ else {
         $setcookie = 1;
     } else $cache .= " balance ";
 
-    // Query Orders
+    // Query Exchange Orders
     if(!isset($openOrders)) {
         $res = $kraken->QueryPrivate('openOrders', array('trades' => true));
         if(isset($res['result'])) {
@@ -674,7 +688,7 @@ else {
                                 <span class="input-group-addon">
                                     <input type="checkbox" aria-label="Activate Sell at Take Profit" id="takeProfit_active" name="takeProfit_active" value="1">
                                 </span>
-                                <input type="text" class="form-control" aria-label="" id="takeProfit" name="takeProfit" value="10">
+                                <input type="text" class="form-control" aria-label="" id="takeProfit_rate" name="takeProfit_rate" value="10">
                                 <div class="input-group-addon">%</div>
                                 </div>
                             </div>  
@@ -689,7 +703,7 @@ else {
                                 <span class="input-group-addon">
                                     <input type="checkbox" aria-label="Activate Sell at Stop Loss Profit" id="stopLoss_active" name="stopLoss_active" value="1">
                                 </span>
-                                <input type="text" class="form-control" aria-label="" id="stopLoss" name="stopLoss" value="3">
+                                <input type="text" class="form-control" aria-label="" id="stopLoss_rate" name="stopLoss_rate" value="3">
                                 <div class="input-group-addon">%</div>
                                 </div>
                             </div>  
