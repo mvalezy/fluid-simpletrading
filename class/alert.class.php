@@ -54,7 +54,7 @@ class Alert {
 
         $this->price = round($this->price, 1);
 
-        $this->API              = new NotifyMyAndroid();
+        $this->API              = new Notify();
         $this->API->url         = "http://demo.fluid-element.com/trade";
         $this->API->priority    = $this->priority;      
 
@@ -115,7 +115,7 @@ class Alert {
     }
 
 
-    public function add($price, $operator = 'less') {
+    public function add($operator, $price = 0) {
 
         switch($operator) {
             case '>':
@@ -126,14 +126,14 @@ class Alert {
                 break; 
             case '=':
                 $operator = 'even';
-                break; 
+                break;
         }
 
         $query_ins = "INSERT INTO trade_alert SET
-        exchange = '$this->exchange',
-        pair = '$this->pair',
-        operator = '$operator',
-        price = '$price'";
+            exchange = '$this->exchange',
+            pair = '$this->pair',
+            operator = '$operator',
+            price = '$price'";
 
         if(isset($this->ledgerid) && $this->ledgerid > 0) {
             $query_ins .= ", ledgerid = $this->ledgerid";

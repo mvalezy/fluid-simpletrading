@@ -12,11 +12,26 @@ class ErrorMessage {
     public $message;
 
     
-    public function __construct($type = 'info', $message) {
+    public function __construct($type = 'info', $message, $info = '') {
+
         $this->type 	= $type;
-		$this->message 	= $message;
-		
-		if($this->message)
-			return $this;        
+        
+        if(is_array($message)) {
+            $this->message = '';
+            foreach($message as $detail) {
+                if(strlen($this->message > 0))
+                    $this->message .= ' | ';
+                $this->message .= $detail;
+            }
+        }
+        else {
+            $this->message 	= $message;
+        }       
+
+        if($info)
+            $this->message .= " ($info)";
+
+        if($this->message)
+            return $this; 
     }
 }

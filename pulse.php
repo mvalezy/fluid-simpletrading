@@ -1,5 +1,11 @@
 <?php
 
+/*header('HTTP/1.1 503 Service Temporarily Unavailable');
+header('Status: 503 Service Temporarily Unavailable');
+header('Retry-After: 3600');
+die("MAINTENANCE MODE");*/
+
+
 // CONFIG
 require_once('config/config.inc.php');
 
@@ -9,10 +15,14 @@ require_once('config/kraken.api.config.php');
 require_once('config/nma.api.config.php'); 
 
 // Class
-require_once('class/error.class.php');
+require_once('class/error.class.php'); 
 require_once('class/history.class.php'); 
 require_once('class/ledger.class.php'); 
 require_once('class/alert.class.php');
+
+// API
+require_once('api/kraken.api.php');
+require_once('api/nma.api.php');
 
 
 // Open SQL connection
@@ -21,6 +31,7 @@ $db = connecti();
 // Query Data
 if(isset($_GET['debug']) && $_GET['debug'] > 0) { $debug = $_GET['debug']; }
 else $debug = 0;
+
 
 /*
  * CRON CONFIG
@@ -38,16 +49,14 @@ else $debug = 0;
  * TICKER
  * QUERY Current Price
  */
-$res = $kraken->QueryPublic('Ticker', array('pair' => TRADE_PAIR ));
-if(isset($res['result'])) {
-    if(isset($res['result'][TRADE_PAIR]['c']['0'])) {
-        $price = $res['result'][TRADE_PAIR]['c']['0'];
+$Exchange = new Exchange();
+if($Exchange->Ticker() === true) {
+    $price = $Exchange->price;
 
-        echo "Ticker:".TRADE_PAIR."=$price\n";
+    echo "Ticker:".TRADE_PAIR."=$price\n";
 
-        $History = new History();
-        $History->add($price);
-    }
+    $History = new History();
+    $History->add($price);
 }
 
 /*
@@ -72,7 +81,7 @@ if(is_array($Alert->List) && count($Alert->List) > 0) {
  */
  $Ledger = new Ledger();
  $Ledger->selectScalp($price);
- krumo($Ledger);
+ //krumo($Ledger);
 
  if(is_array($Ledger->List) && count($Ledger->List) > 0) {
     foreach($Ledger->List as $id => $detail) {
@@ -88,7 +97,7 @@ if(is_array($Alert->List) && count($Alert->List) > 0) {
 
         $Ledger->add();
         $Ledger->reference = 'XXXX'; // DEBUG
-        $Ledger->close($Ledger->id);
+        $Ledger->close($Ledger->id, $price);
     }
 }
 

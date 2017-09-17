@@ -18,7 +18,7 @@ class NotifyMyAndroid {
     public $remaining;
     public $resettimer;
 
-    protected $apikey=API_KRAKEN_KEY;
+    protected $apikey=API_NMA_KEY;
 
 
     public function post() {

@@ -154,9 +154,29 @@ class KrakenAPI
         curl_setopt($this->curl, CURLOPT_URL, $this->url . $path);
         curl_setopt($this->curl, CURLOPT_POSTFIELDS, $postdata);
         curl_setopt($this->curl, CURLOPT_HTTPHEADER, $headers);
-        $result = curl_exec($this->curl);
-        if($result===false)
-            throw new KrakenAPIException('CURL error: ' . curl_error($this->curl));
+
+
+        // retry - Fluid modification 2017-10-09
+        if($method == 'AddOrder') {
+            $result = curl_exec($this->curl);
+            if($result===false)
+                throw new KrakenAPIException('CURL error: ' . curl_error($this->curl));
+        }
+        else {
+            $i=0;
+            while ($i++ < CURL_EXEC_RETRY_MAX) {
+                $result = curl_exec($this->curl);
+                
+                if($result===false) {
+                    if ($i < CURL_EXEC_RETRY_MAX) { sleep($i+3); }
+                    else 
+                        throw new KrakenAPIException('CURL error: ' . curl_error($this->curl));
+                }
+                else 
+                    break;
+            }
+        }
+
 
         // decode results
         $result = json_decode($result, true);

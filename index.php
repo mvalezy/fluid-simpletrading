@@ -16,6 +16,10 @@ require_once('class/history.class.php');
 require_once('class/ledger.class.php'); 
 require_once('class/alert.class.php');
 
+// API
+require_once('api/kraken.api.php');
+require_once('api/nma.api.php');
+
 
 // Open SQL connection
 $db = connecti();
@@ -45,11 +49,12 @@ if(!$purge && isset($_COOKIE["SimpleKraken"]) && $_COOKIE["SimpleKraken"]) {
     $cookie     = json_decode($_COOKIE["SimpleKraken"], true);
     $Last       = $cookie['Last'];
     $Balance    = $cookie['Balance'];
-    $openOrders = $cookie['openOrders'];
+    $OpenOrders = $cookie['openOrders'];
 
     $cache = " - Cached: ";
 
 }
+
 
 /*
  * START SCENARIO
@@ -76,77 +81,35 @@ if(isset($_POST['addOrder']) && $_POST['addOrder']) {
 
     }
 
-    if(!isset($error->message)) {
+    if(count($message) == 0) {
 
-        if($Ledger->orderAction == 'buy') {
-            $oflags = 'fciq';
-        }
-        else {
-            $oflags = 'fcib';
-       }
+        $Ledger->round();
 
-       $Ledger->round();
-
-
-        // POST Exchange Order
-        /*$res = $kraken->QueryPrivate('AddOrder', array(
-            'pair'      => TRADE_PAIR,
-            'order'      => $Ledger->orderAction, 
-            'oflags'    => $oflags,
-
-            'ordertype' => $Ledger->type, 
-            'volume'    => $Ledger->volume,
-            'price'     => $Ledger->price,
-        ));
-
-        krumo($res);*/
-
-        // STORE Success Order
+        // STORE Order
         $Ledger->add();
 
         if($debug)
             krumo($Ledger);
 
+        // POST Exchange Order
+        $Exchange = new Exchange();
 
-        // Schedule new Alerts
-        $Alert  = new Alert($Ledger->id);
-        if($Ledger->takeProfit_active == 1) {
-            //$Alert->add($Ledger->takeProfit, 'even'); // Sell alert
-            $Alert->add(round($Ledger->price * (1 + $Ledger->takeProfit_rate / 2 / 100), 3), 'more'); // Reach alert
-        }
+        if($Exchange->AddOrder($Ledger->id) === true) {
+            // STORE Reference of Last Order and Close
+            $Ledger->reference = $Exchange->reference;
+            $Ledger->update($Ledger->id);
 
-        if($Ledger->stopLoss_active == 1) {
-            //$Alert->add($Ledger->stopLoss, 'even'); // Sell alert
-            $Alert->add(round($Ledger->price / (1 + $Ledger->stopLoss_rate / 2 / 100), 3), 'less'); // Reach alert
-        }
-
-
-        /*// IF Error
-        if(isset($res['error']) && is_array($res['error']) && count($res['error']) > 0) {
-            foreach($res['error'] as $resmessage) {
-                $message[] = new ErrorMessage('danger', $resmessage);
-                $retry = 1;
-            }
-        }*/
-        // ELSE (Order OK)
-        /*elseif(isset($res['result']) && is_array($res['result']) && count($res['result']) > 0) {
-
-            // STORE Reference of Last Order
-            $Ledger->reference  = $res['result']['txid']['0'];*/
-
-            $Ledger->reference = 'XXXX'; // DEBUG
-            $Ledger->close($Ledger->id);
-
-            $message[] = new ErrorMessage('success', $res['result']['descr']['order']);
+            $message[] = new ErrorMessage('success', $Exchange->Success);
 
             // Delete Cookie
             setcookie("SimpleKraken", '', 1);
-        /*}
+        }
         else {
-            krumo($res);
-        }*/
+            $message[] = new ErrorMessage('danger', $Exchange->Error);
+        }
 
-        
+        if($debug)
+            krumo($Exchange);        
     }
  
 } // END POST ORDER
@@ -179,38 +142,31 @@ else {
      */
 
     if(isset($_GET['cancel']) && $_GET['cancel']) {
-        $res = $kraken->QueryPrivate('CancelOrder', array('txid' => $_GET['cancel']));
-        krumo($res);
+        $Exchange = new Exchange();
 
-        if(isset($res['error']) && is_array($res['error']) && count($res['error']) > 0) {
-            foreach($res['error'] as $resmessage) {
-                $message[] = new ErrorMessage('danger', $resmessage);
-                $retry = 1;
-            }
+        if($Exchange->CancelOrder($_GET['cancel']) === true) {
+            $message[] = new ErrorMessage('success', $Exchange->Success);
+            unset($OpenOrders); // Clear List Array
         }
-        elseif(isset($res['result']) && is_array($res['result']) && count($res['result']) > 0) {
-            $message[] = new ErrorMessage('success', 'Order '.$_GET['cancel']. ' canceled');
-
-            unset($openOrders);
+        else {
+            $message[] = new ErrorMessage('danger', $Exchange->Error);
         }
     }
+
 
     /*
     * DISPLAY
     */
 
-
     // Query Last Exhange PAIR price 
     if(!isset($Last)) {
-        $res = $kraken->QueryPublic('Ticker', array('pair' => TRADE_PAIR));
-        if(isset($res['result'])) {
-            if(isset($res['result'][TRADE_PAIR]['c']['0'])) {
-                $Last = $res['result'][TRADE_PAIR]['c']['0'];
-            }
-            else $Last = 0;
-        } else {
+        $Exchange = new Exchange();
+        if($Exchange->Ticker() === true) {
+            $Last = $Exchange->price;
+        }
+        else {
             $Last = 0;
-            output($res['error'], 'warning');
+            $message[] = new ErrorMessage('warning', $Exchange->Error, 'Ticker');
         }
 
         $setcookie = 1;
@@ -218,28 +174,28 @@ else {
 
     // Query Exchange Balance
     if(!isset($Balance['ZEUR']) || !isset($Balance['XETH'])) {
-        $res = $kraken->QueryPrivate('Balance');
-        if(isset($res['result'])) {
-            $Balance = $res['result'];
+        $Exchange = new Exchange();
+        if($Exchange->Balance() === true) {
+            $Balance = $Exchange->Balance;
         }
         else {
             $Balance['ZEUR'] = 0;
             $Balance['XETH'] = 0;
-            output($res['error'], 'warning');
+            $message[] = new ErrorMessage('warning', $Exchange->Error, 'Balance');
         }
 
         $setcookie = 1;
     } else $cache .= " balance ";
 
     // Query Exchange Orders
-    if(!isset($openOrders)) {
-        $res = $kraken->QueryPrivate('openOrders', array('trades' => true));
-        if(isset($res['result'])) {
-            $openOrders = $res['result'];
+    if(!isset($OpenOrders)) {
+        $Exchange = new Exchange();
+        if($Exchange->OpenOrders() === true) {
+            $OpenOrders = $Exchange->OpenOrders;
         }
         else {
-            $openOrders['open'] = array();
-            output($res['error'], 'warning');
+            $OpenOrders['open'] = array();
+            $message[] = new ErrorMessage('warning', $Exchange->Error, 'OpenOrders');
         }
 
         $setcookie = 1;
@@ -265,7 +221,7 @@ else {
         $cookie = array();
         $cookie['Balance']      = $Balance;
         $cookie['Last']         = $Last;
-        $cookie['openOrders']   = $openOrders;
+        $cookie['openOrders']   = $OpenOrders;
 
         setcookie("SimpleKraken", json_encode($cookie), time()+3600);
     }
@@ -542,8 +498,8 @@ else {
                                 <div class="row">
                                     
                     <?php
-	  								if(is_array($openOrders['open']) && count($openOrders['open']) > 0)
-                                        foreach($openOrders['open'] as $OrderID => $OrderContent) {
+	  								if(is_array($OpenOrders['open']) && count($OpenOrders['open']) > 0)
+                                        foreach($OpenOrders['open'] as $OrderID => $OrderContent) {
                     ?>
                                             <div class="col-sm-12 col-lg-12">
                                                 <?php echo $OrderContent['descr']['order']; ?>
@@ -680,7 +636,7 @@ else {
 
                     <div class="col-sm-12 col-lg-12">
 
-                        <div class="col-sm-12 col-md-6 col-lg-4">
+                        <div class="col-sm-12 col-md-6 col-lg-6">
                         <div class="form-group">
                             <label for="volume" class="control-label col-md-4">Take-Profit</label>
                             <div class="col-md-8">
@@ -695,7 +651,7 @@ else {
                         </div>
                         </div>
 
-                        <div class="col-sm-12 col-md-6 col-lg-4">
+                        <div class="col-sm-12 col-md-6 col-lg-6">
                         <div class="form-group">
                             <label for="volume" class="control-label col-md-4">Stop-Loss</label>
                             <div class="col-md-8">
@@ -784,14 +740,21 @@ if(is_array($Alert->List) && count($Alert->List) > 0) {
                 </form>
 
             </div>
-
+            
             </div>
             </div>
 
 <?php
 } // END DISPLAY
-?>
 
+// Display Loading time
+$loading_time = microtime();
+$loading_time = explode(' ', $loading_time);
+$loading_time = $loading_time[1] + $loading_time[0];
+$loading_finish = $loading_time;
+$loading_total_time = round(($loading_finish - $loading_start), 4);
+?>
+<small>Simple Trading v0.1 - Load:<?php echo $loading_total_time; ?>s <em><?php echo $cache; ?></em></small>
         </div>
     </body>
 </html>

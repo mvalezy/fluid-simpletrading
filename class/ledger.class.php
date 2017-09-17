@@ -12,7 +12,7 @@ class Ledger {
 
     /* DB STRINGS */
     public $id;
-	public $parentid;
+    public $parentid;
     public $exchange;
     public $pair;
     public $reference;
@@ -39,13 +39,13 @@ class Ledger {
 
     /* OBJECTS */
     public $List;
-    public $API;
 
     
-    public function __construct($alert = 0, $exchange = TRADE_EXCHANGE, $pair = TRADE_PAIR) {
+    public function __construct($alert = TRADE_ALERT, $exchange = TRADE_EXCHANGE, $pair = TRADE_PAIR) {
         global $db;
         $this->db = $db;
 
+        $this->alert    = $alert;
         $this->exchange = $exchange;
         $this->pair     = $pair;       
     }
@@ -83,18 +83,18 @@ class Ledger {
     public function add() {
 
         $query_ins = "INSERT INTO trade_ledger SET exchange = '$this->exchange',
-        pair = '$this->pair',
-        orderAction = '$this->orderAction',
-        type = '$this->type',
-        volume = '$this->volume',
-        price = '$this->price',
-        total = '$this->total',
-        scalp = '$this->scalp'";
+            pair = '$this->pair',
+            orderAction = '$this->orderAction',
+            type = '$this->type',
+            volume = '$this->volume',
+            price = '$this->price',
+            total = '$this->total',
+            scalp = '$this->scalp'";
 
         if($this->reference)
             $query_ins .= ", reference = '$this->reference'";
 		
-		if($this->parentid)
+		    if($this->parentid)
             $query_ins .= ", parentid = $this->parentid";
             
         if($this->priceWish)
@@ -112,25 +112,51 @@ class Ledger {
         mysqlerr($this->db, $query_ins);
 
         $this->id = $this->db->insert_id;
+
+
+        // Schedule new Alerts
+        if($this->alert) {
+        $Alert = new Alert($Ledger->id);
+            if($this->takeProfit_active == 1) {
+                //$Alert->add($Ledger->takeProfit, 'even'); // Sell alert
+                $Alert->add('more', round($this->price * (1 + $this->takeProfit_rate / 2 / 100), 3)); // Reach alert
+            }
+
+            if($this->stopLoss_active == 1) {
+                //$Alert->add($Ledger->stopLoss, 'even'); // Sell alert
+                $Alert->add('less', round($this->price / (1 + $this->stopLoss_rate / 2 / 100), 3)); // Reach alert
+            }
+        }
+
     }
 
-    public function close($id) {
+    public function update($id) {
         
-        $query = "UPDATE trade_ledger SET reference = '$this->reference', status = 'closed' WHERE id = $id;";
+        $query = "UPDATE trade_ledger SET reference = '$this->reference' WHERE id = $id;";
+
+        $sql = $this->db->query($query);
+        mysqlerr($this->db, $query);        
+    }
+
+    public function close($id, $price) {
+        
+        $query = "UPDATE trade_ledger SET status = 'closed' WHERE id = $id;";
 
         $sql = $this->db->query($query);
         mysqlerr($this->db, $query);
 
         // SEND Immediate Alert
-        $this->get($id);
-        $Alert  = new Alert($Ledger->id);
-        $Alert->add($this->price, 'now');
-        $Alert->send($Alert->id, $this->price);
+        if($this->$alert) {
+            //$this->get($id);
+            $Alert  = new Alert($Ledger->id);
+            $Alert->add('now', $price);
+            $Alert->send($Alert->id, $price);
+        }
         
     }
 
     public function closeScalp($id) {
-        
+         
         $query = "UPDATE trade_ledger SET scalp = 'closed' WHERE id = $id;";
 
         $sql = $this->db->query($query);
@@ -185,7 +211,7 @@ class Ledger {
             $this->pair  		= $row->pair;
             $this->reference    = $row->reference;
             $this->orderAction  = $row->orderAction;
-            $this->type         = $tow->type;
+            $this->type         = $row->type;
             $this->volume  		= $row->volume;
             $this->price       	= $row->price;
             $this->total    	= $row->total;
