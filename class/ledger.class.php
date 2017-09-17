@@ -146,7 +146,7 @@ class Ledger {
         mysqlerr($this->db, $query);
 
         // SEND Immediate Alert
-        if($this->$alert) {
+        if($this->alert) {
             //$this->get($id);
             $Alert  = new Alert($Ledger->id);
             $Alert->add('now', $price);

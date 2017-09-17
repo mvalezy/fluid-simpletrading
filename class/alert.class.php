@@ -10,7 +10,7 @@ class Alert {
     /* DB */
     private $db;
 
-    /* STRINGS */
+    /* DB STRINGS */
     public $id;
     public $exchange;
     public $pair;
@@ -55,7 +55,7 @@ class Alert {
         $this->price = round($this->price, 1);
 
         $this->API              = new Notify();
-        $this->API->url         = "http://demo.fluid-element.com/trade";
+        $this->API->url         = WEBSITE_URL;
         $this->API->priority    = $this->priority;      
 
         switch($this->operator) {
