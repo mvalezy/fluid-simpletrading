@@ -65,8 +65,10 @@ class Ledger {
             $this->takeProfit   = $this->price * (1 + $this->takeProfit_rate / 100);
             $this->stopLoss     = $this->price / (1 + $this->stopLoss_rate / 100);
 
-            if($this->takeProfit || $this->stopLoss)
+            if($this->takeProfit_active || $this->stopLoss_active)
                 $this->scalp = 'pending';
+            else
+                $this->scalp = 'none';
         }
     }
 
@@ -195,6 +197,23 @@ class Ledger {
             }
         }
     }
+
+    public function selectEmptyReference($limit = 5) {
+        $query = "SELECT id, volume, price, addDate FROM trade_ledger WHERE reference IS NULL ORDER BY addDate DESC LIMIT $limit;";
+        
+        $sql = $this->db->query($query);
+        mysqlerr($this->db, $query);
+
+        if(isset($sql->num_rows) && $sql->num_rows > 0) {
+            $this->List = array();
+            while($row = $sql->fetch_object()) {
+                $this->List[$row->id] = $row;
+            }
+            return true;
+        }
+        else
+            return false;
+    }    
 
 
     public function get($id) {

@@ -101,6 +101,23 @@ if(is_array($Alert->List) && count($Alert->List) > 0) {
     }
 }
 
+/*
+ * FIND ORDER
+ * Fill reference on Ledger in case of timeout
+ */
+$Ledger = new Ledger();
+if($Ledger->selectEmptyReference() === true) {
+    foreach($Ledger->List as $id => $detail) {
+        $Exchange = new $Exchange();
+        if($Exchange->searchOrder($detail->addDate, $detail->volume, $detail->price) === true) {
+             // STORE Reference of Last Order
+             $Ledger->reference = $Exchange->reference;
+             $Ledger->update($id);
+        }        
+    }
+}
+
+ 
 
 
 /*

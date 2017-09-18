@@ -24,6 +24,8 @@ class Exchange {
 	
 	public $price;
 
+	public $debug;
+
     /* OBJECTS */
     public $API;
     public $Ledger;
@@ -36,7 +38,10 @@ class Exchange {
 
     
     public function __construct($key = EXCHANGE_API_KEY, $secret = EXCHANGE_API_SECRET, $exchange = TRADE_EXCHANGE, $pair = TRADE_PAIR) {
-        $this->exchange = $exchange;
+		global $debug;
+		$this->debug = $debug;
+		
+		$this->exchange = $exchange;
         $this->pair     = $pair;
 
         // API Credentials
@@ -74,11 +79,13 @@ class Exchange {
             'userref' 	=> strtotime($this->Ledger->addDate), //$this->Ledger->id,
 		);
 		
-		global $debug;
-		if($debug)
+		
+		if($this->debug)
 			krumo($parameters);
 
 		$this->Response = $this->API->QueryPrivate('AddOrder', $parameters);
+		if($this->debug)
+			krumo($this->Response);
 
         if(isset($this->Response['error']) && is_array($this->Response['error']) && count($this->Response['error']) > 0) {
 			$this->Error = '';
@@ -100,12 +107,135 @@ class Exchange {
     }
 
 
-    public function SearchOrder($ledgerid) {
+	public function searchOrder($addDate, $volume = 0, $price = 0) {
+
+		$userref = strtotime($addDate);
+
+
+		// STEP 1 : SEARCH OPEN ORDERS
+		$this->Response = $this->API->QueryPrivate('OpenOrders', array('trades' => true));
+		if($this->debug)
+			krumo($this->Response);
+		
+		if(isset($this->Response['error']) && is_array($this->Response['error']) && count($this->Response['error']) > 0) {
+			echo $this->Response['error'];
+			return false;
+		}
+		// ELSE (Order OK)
+		elseif(isset($this->Response['result']) && is_array($this->Response['result']) && count($this->Response['result']) > 0) {
+			if(is_array($this->Response['result']['open']))
+				foreach($this->Response['result']['open'] as $reference => $result) {
+					if($result['userref'] == $userref) {
+						$found = 0;
+						if($volume)
+							if($result['vol'] != $volume)
+								$found = 0;
+						if($price)
+							if($result['descr']['price'] != $price)
+								$found = 0;
+						
+						if($found == 1) {
+							$this->reference = $reference;
+							return true;
+						}
+					}	
+				}
+
+		}
+
+		// STEP 2 : SEARCH CLOSED ORDERS
+		$parameters = array(
+			'trades' => true,
+			'userref' => $userref,
+			'start' => $userref -7200,
+			'end' => $userref +7200,
+		);
+
+
+		if($this->debug)
+			krumo($parameters);
+
+		$this->Response = $this->API->QueryPrivate('ClosedOrders', $parameters);
+		if($this->debug)
+			krumo($this->Response);
+		
+		if(isset($this->Response['error']) && is_array($this->Response['error']) && count($this->Response['error']) > 0) {
+			echo $this->Response['error'];
+			return false;
+		}
+		// ELSE (Order OK)
+		elseif(isset($this->Response['result']) && is_array($this->Response['result']) && count($this->Response['result']) > 0) {
+			if(is_array($this->Response['result']['closed']))
+				foreach($this->Response['result']['closed'] as $reference => $result) {
+					$found = 1;
+					if($volume)
+						if($result['vol'] != $volume)
+							$found = 0;
+					if($price)
+						if($result['descr']['price'] != $price)
+							$found = 0;
+					
+					if($found == 1) {
+						$this->reference = $reference;
+						return true;
+					}
+				}
+
+		}
+
+		// NOT FOUND
+		return false;
+
+	}
+
+
+    public function QueryOrders($ledgerid = 0, $reference = 0) {
 		/*
 		SCENARII
 		timeout > order created 		> retrieve reference
 				> order not created		> create again
 		*/
+
+		$parameters = array(
+            'trades' => true
+		);
+
+		if($ledgerid) {
+			$this->Ledger = new Ledger();
+			$this->Ledger->get($ledgerid);
+			$this->reference = $this->Ledger->reference;
+
+			$parameters['userref'] = strtotime($this->Ledger->addDate); //$this->Ledger->id;
+		}
+		else
+			$this->reference = $reference;
+
+		if($this->reference)
+			$parameters['txid'] = $this->reference;
+
+		if($this->debug)
+			krumo($parameters);
+		
+		$this->Response = $this->API->QueryPrivate('QueryOrders', $parameters);
+		if($this->debug)
+			krumo($this->Response);
+		
+		if(isset($this->Response['error']) && is_array($this->Response['error']) && count($this->Response['error']) > 0) {
+			$this->Error = '';
+			foreach($this->Response['error'] as $message) {
+				$this->Error .= $message;
+			}
+			return false;
+		}
+		// ELSE (Order OK)
+		elseif(isset($this->Response['result']) && is_array($this->Response['result']) && count($this->Response['result']) > 0) {
+				$this->OpenOrders = $this->Response['result'];
+				return true;
+		}
+		else {
+			krumo($this->Response);
+			die("QueryOrders Error");
+		}
 
 	}
 
@@ -113,6 +243,8 @@ class Exchange {
 	public function OpenOrders() {
 		
 		$this->Response = $this->API->QueryPrivate('OpenOrders', array('trades' => true));
+		if($this->debug)
+			krumo($this->Response);
 		
 		if(isset($this->Response['error']) && is_array($this->Response['error']) && count($this->Response['error']) > 0) {
 			$this->Error = '';
@@ -145,7 +277,9 @@ class Exchange {
 			$this->reference = $reference;
 		
 		$this->Response = $this->API->QueryPrivate('CancelOrder', array('txid' => $this->reference));
-		
+		if($this->debug)
+			krumo($this->Response);
+
         if(isset($this->Response['error']) && is_array($this->Response['error']) && count($this->Response['error']) > 0) {
 			$this->Error = '';
 			foreach($this->Response['error'] as $message) {
@@ -169,7 +303,9 @@ class Exchange {
 	public function Ticker() {
 		
 		$this->Response = $this->API->QueryPublic('Ticker', array('pair' => $this->pair));
-		
+		if($this->debug)
+			krumo($this->Response);
+
 		if(isset($this->Response['error']) && is_array($this->Response['error']) && count($this->Response['error']) > 0) {
 			$this->Error = '';
 			foreach($this->Response['error'] as $message) {
@@ -196,7 +332,9 @@ class Exchange {
 	public function Balance() {
 		
 		$this->Response = $this->API->QueryPrivate('Balance');
-		
+		if($this->debug)
+			krumo($this->Response);
+
 		if(isset($this->Response['error']) && is_array($this->Response['error']) && count($this->Response['error']) > 0) {
 			$this->Error = '';
 			foreach($this->Response['error'] as $message) {

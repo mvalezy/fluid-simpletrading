@@ -95,7 +95,7 @@ if(isset($_POST['addOrder']) && $_POST['addOrder']) {
         $Exchange = new Exchange();
 
         if($Exchange->AddOrder($Ledger->id) === true) {
-            // STORE Reference of Last Order and Close
+            // STORE Reference of Last Order
             $Ledger->reference = $Exchange->reference;
             $Ledger->update($Ledger->id);
 
@@ -144,7 +144,7 @@ else {
     if(isset($_GET['cancel']) && $_GET['cancel']) {
         $Exchange = new Exchange();
 
-        if($Exchange->CancelOrder($_GET['cancel']) === true) {
+        if($Exchange->CancelOrder(0, $_GET['cancel']) === true) {
             $message[] = new ErrorMessage('success', $Exchange->Success);
             unset($OpenOrders); // Clear List Array
         }
@@ -445,7 +445,7 @@ ob_flush();
             <div class="panel panel-primary" >
 
                 <div class="panel-heading">
-                    <div class="panel-title"><a href="index.php">Simple Kraken</a></div>
+                    <div class="panel-title"><a href="index.php">Simple Trader</a></div>
                     <div style="float:right; font-size: 80%; position: relative; top:-18px"><a href="index.php?purge=1" class="btn btn-default btn-xs" role="button"><span class="glyphicon glyphicon-flash"></span> Clear cache</a></div>
                 </div>     
 
@@ -459,10 +459,11 @@ if(count($message) > 0) {
     }
 }
 
+
 if(isset($_POST['addOrder']) && $_POST['addOrder']) {
 
  
-} // END POST ORDER
+} // END DISPLAY FOR POST ORDER
 
 else {
 
