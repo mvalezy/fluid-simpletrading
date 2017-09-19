@@ -7,34 +7,37 @@
 require_once('client/KrakenAPIClient.php');
 
 class Exchange {
- 	
-    /* STRINGS */
-	public $reference;
-	
-	private $key;
-    private $secret;
-    private $beta;
-    private $url;
-    private $version;
-	public  $oflags;
-	private $sslverify;
 
+	
+	/* CONFIG STRINGS */
+	public $debug;
     public $exchange;
 	public $pair;
-	
-	public $price;
+	public $oflags;
 
-	public $debug;
+    /* STRINGS */
+	public $reference;
+	public $status;
+	public $description;
+	public $price;
+	public $volume;
+	public $cost;
+	public $fee;
+	public $trades;
+	
+
 
     /* OBJECTS */
     public $API;
     public $Ledger;
     public $Error;
     public $Success;
-	public $Response;
 	
 	public $Balance;
 	public $OpenOrders;
+	public $List;
+	
+	public $ReferenceList;
 
     
     public function __construct($key = EXCHANGE_API_KEY, $secret = EXCHANGE_API_SECRET, $exchange = TRADE_EXCHANGE, $pair = TRADE_PAIR) {
@@ -44,16 +47,12 @@ class Exchange {
 		$this->exchange = $exchange;
         $this->pair     = $pair;
 
-        // API Credentials
-        $this->key      = $key;
-        $this->secret   = $secret;
-
         // set which platform to use (beta or standard)
-        $this->beta = false; 
-        $this->url = $this->beta ? 'https://api.beta.kraken.com' : 'https://api.kraken.com';
-        $this->sslverify = $this->beta ? false : true;
-        $this->version = 0;
-        $this->API = new \Payward\KrakenAPI($this->key, $this->secret, $this->url, $this->version, $this->sslverify);
+        $beta = false; 
+        $url = $beta ? 'https://api.beta.kraken.com' : 'https://api.kraken.com';
+        $sslverify = $beta ? false : true;
+        $version = 0;
+        $this->API = new \Payward\KrakenAPI($key, $secret, $url, $version, $sslverify);
     }
 
 
@@ -83,48 +82,55 @@ class Exchange {
 		if($this->debug)
 			krumo($parameters);
 
-		$this->Response = $this->API->QueryPrivate('AddOrder', $parameters);
+		$Response = $this->API->QueryPrivate('AddOrder', $parameters);
 		if($this->debug)
-			krumo($this->Response);
+			krumo($Response);
 
-        if(isset($this->Response['error']) && is_array($this->Response['error']) && count($this->Response['error']) > 0) {
+        if(isset($Response['error']) && is_array($Response['error']) && count($Response['error']) > 0) {
 			$this->Error = '';
-			foreach($this->Response['error'] as $message) {
+			foreach($Response['error'] as $message) {
 				$this->Error .= $message;
 			}
             return false;
         }
         // ELSE (Order OK)
-        elseif(isset($this->Response['result']) && is_array($this->Response['result']) && count($this->Response['result']) > 0) {
-            $this->reference  = $this->Response['result']['txid']['0'];
-            $this->Success = $this->Response['result']['descr']['order'];
+        elseif(isset($Response['result']) && is_array($Response['result']) && count($Response['result']) > 0) {
+            $this->reference  = $Response['result']['txid']['0'];
+            $this->Success = $Response['result']['descr']['order'];
             return true;
         }
         else {
-            krumo($this->Response);
+            krumo($Response);
             die("AddOrder Error");
         }
     }
 
 
 	public function searchOrder($addDate, $volume = 0, $price = 0) {
+		
+		/*
+		SCENARII
+		timeout > order created 		> retrieve reference from open/closed
+				> order not created		> create again
+		*/
+		
 
 		$userref = strtotime($addDate);
 
 
 		// STEP 1 : SEARCH OPEN ORDERS
-		$this->Response = $this->API->QueryPrivate('OpenOrders', array('trades' => true));
+		$Response = $this->API->QueryPrivate('OpenOrders', array('trades' => true));
 		if($this->debug)
-			krumo($this->Response);
+			krumo($Response);
 		
-		if(isset($this->Response['error']) && is_array($this->Response['error']) && count($this->Response['error']) > 0) {
-			echo $this->Response['error'];
+		if(isset($Response['error']) && is_array($Response['error']) && count($Response['error']) > 0) {
+			echo $Response['error'];
 			return false;
 		}
 		// ELSE (Order OK)
-		elseif(isset($this->Response['result']) && is_array($this->Response['result']) && count($this->Response['result']) > 0) {
-			if(is_array($this->Response['result']['open']))
-				foreach($this->Response['result']['open'] as $reference => $result) {
+		elseif(isset($Response['result']) && is_array($Response['result']) && count($Response['result']) > 0) {
+			if(is_array($Response['result']['open']))
+				foreach($Response['result']['open'] as $reference => $result) {
 					if($result['userref'] == $userref) {
 						$found = 0;
 						if($volume)
@@ -155,18 +161,18 @@ class Exchange {
 		if($this->debug)
 			krumo($parameters);
 
-		$this->Response = $this->API->QueryPrivate('ClosedOrders', $parameters);
+		$Response = $this->API->QueryPrivate('ClosedOrders', $parameters);
 		if($this->debug)
-			krumo($this->Response);
+			krumo($Response);
 		
-		if(isset($this->Response['error']) && is_array($this->Response['error']) && count($this->Response['error']) > 0) {
-			echo $this->Response['error'];
+		if(isset($Response['error']) && is_array($Response['error']) && count($Response['error']) > 0) {
+			echo $Response['error'];
 			return false;
 		}
 		// ELSE (Order OK)
-		elseif(isset($this->Response['result']) && is_array($this->Response['result']) && count($this->Response['result']) > 0) {
-			if(is_array($this->Response['result']['closed']))
-				foreach($this->Response['result']['closed'] as $reference => $result) {
+		elseif(isset($Response['result']) && is_array($Response['result']) && count($Response['result']) > 0) {
+			if(is_array($Response['result']['closed']))
+				foreach($Response['result']['closed'] as $reference => $result) {
 					$found = 1;
 					if($volume)
 						if($result['vol'] != $volume)
@@ -189,13 +195,10 @@ class Exchange {
 	}
 
 
-    public function QueryOrders($ledgerid = 0, $reference = 0) {
-		/*
-		SCENARII
-		timeout > order created 		> retrieve reference
-				> order not created		> create again
-		*/
+    public function QueryOrders($ledgerid = 0, $ReferenceList = array()) {
 
+		$this->List = array();
+		
 		$parameters = array(
             'trades' => true
 		);
@@ -203,63 +206,68 @@ class Exchange {
 		if($ledgerid) {
 			$this->Ledger = new Ledger();
 			$this->Ledger->get($ledgerid);
-			$this->reference = $this->Ledger->reference;
 
 			$parameters['userref'] = strtotime($this->Ledger->addDate); //$this->Ledger->id;
+			$parameters['txid'] = $this->reference= $this->Ledger->reference;
+			
 		}
-		else
-			$this->reference = $reference;
-
-		if($this->reference)
-			$parameters['txid'] = $this->reference;
+		elseif(count($ReferenceList)) {
+			$parameters['txid'] = $this->ReferenceList = implode(',', $ReferenceList);
+		}
+			
 
 		if($this->debug)
 			krumo($parameters);
 		
-		$this->Response = $this->API->QueryPrivate('QueryOrders', $parameters);
+		$Response = $this->API->QueryPrivate('QueryOrders', $parameters);
 		if($this->debug)
-			krumo($this->Response);
+			krumo($Response);
 		
-		if(isset($this->Response['error']) && is_array($this->Response['error']) && count($this->Response['error']) > 0) {
-			$this->Error = '';
-			foreach($this->Response['error'] as $message) {
-				$this->Error .= $message;
-			}
+		if(isset($Response['error']) && is_array($Response['error']) && count($Response['error']) > 0) {
+			echo $Response['error'];
 			return false;
 		}
 		// ELSE (Order OK)
-		elseif(isset($this->Response['result']) && is_array($this->Response['result']) && count($this->Response['result']) > 0) {
-				$this->OpenOrders = $this->Response['result'];
-				return true;
+		elseif(isset($Response['result']) && is_array($Response['result']) && count($Response['result']) > 0) {
+			foreach($Response['result'] as $reference => $detail) {
+				$this->List[$reference] = new stdClass();
+				$this->List[$reference]->userref 		= $detail['userref'];
+				$this->List[$reference]->status 		= $detail['status']; // open | closed | canceled
+				$this->List[$reference]->description	= $detail['descr']['order'];
+				$this->List[$reference]->price 			= $detail['price'];
+				$this->List[$reference]->volume 		= $detail['vol_exec'];
+				$this->List[$reference]->cost 			= $detail['cost'];
+				$this->List[$reference]->fee 			= $detail['fee'];
+				$this->List[$reference]->trades 		= $detail['trades'];
+			}
+			return true;
 		}
-		else {
-			krumo($this->Response);
-			die("QueryOrders Error");
-		}
-
+		
+		// NOT FOUND
+		return false;
 	}
 
 
 	public function OpenOrders() {
 		
-		$this->Response = $this->API->QueryPrivate('OpenOrders', array('trades' => true));
+		$Response = $this->API->QueryPrivate('OpenOrders', array('trades' => true));
 		if($this->debug)
-			krumo($this->Response);
+			krumo($Response);
 		
-		if(isset($this->Response['error']) && is_array($this->Response['error']) && count($this->Response['error']) > 0) {
+		if(isset($Response['error']) && is_array($Response['error']) && count($Response['error']) > 0) {
 			$this->Error = '';
-			foreach($this->Response['error'] as $message) {
+			foreach($Response['error'] as $message) {
 				$this->Error .= $message;
 			}
 			return false;
 		}
 		// ELSE (Order OK)
-		elseif(isset($this->Response['result']) && is_array($this->Response['result']) && count($this->Response['result']) > 0) {
-				$this->OpenOrders = $this->Response['result'];
+		elseif(isset($Response['result']) && is_array($Response['result']) && count($Response['result']) > 0) {
+				$this->OpenOrders = $Response['result'];
 				return true;
 		}
 		else {
-			krumo($this->Response);
+			krumo($Response);
 			die("OpenOrders Error");
 		}
 
@@ -276,24 +284,24 @@ class Exchange {
 		else
 			$this->reference = $reference;
 		
-		$this->Response = $this->API->QueryPrivate('CancelOrder', array('txid' => $this->reference));
+		$Response = $this->API->QueryPrivate('CancelOrder', array('txid' => $this->reference));
 		if($this->debug)
-			krumo($this->Response);
+			krumo($Response);
 
-        if(isset($this->Response['error']) && is_array($this->Response['error']) && count($this->Response['error']) > 0) {
+        if(isset($Response['error']) && is_array($Response['error']) && count($Response['error']) > 0) {
 			$this->Error = '';
-			foreach($this->Response['error'] as $message) {
+			foreach($Response['error'] as $message) {
 				$this->Error .= $message;
 			}
             return false;
         }
 		// ELSE (Order OK)
-		elseif(isset($this->Response['result']) && is_array($this->Response['result']) && count($this->Response['result']) > 0) {
+		elseif(isset($Response['result']) && is_array($Response['result']) && count($Response['result']) > 0) {
 			$this->Success = "Order $this->reference canceled";
 			return true;
 		}
 		else {
-			krumo($this->Response);
+			krumo($Response);
 			die("CancelOrder Error");
 		}
 
@@ -302,27 +310,27 @@ class Exchange {
 
 	public function Ticker() {
 		
-		$this->Response = $this->API->QueryPublic('Ticker', array('pair' => $this->pair));
+		$Response = $this->API->QueryPublic('Ticker', array('pair' => $this->pair));
 		if($this->debug)
-			krumo($this->Response);
+			krumo($Response);
 
-		if(isset($this->Response['error']) && is_array($this->Response['error']) && count($this->Response['error']) > 0) {
+		if(isset($Response['error']) && is_array($Response['error']) && count($Response['error']) > 0) {
 			$this->Error = '';
-			foreach($this->Response['error'] as $message) {
+			foreach($Response['error'] as $message) {
 				$this->Error .= $message;
 			}
 			return false;
 		}
 		// ELSE (Order OK)
-		elseif(isset($this->Response['result']) && is_array($this->Response['result']) && count($this->Response['result']) > 0) {
-			if(isset($this->Response['result'][$this->pair]['c']['0'])) {
-				$this->price = $this->Response['result'][$this->pair]['c']['0'];
+		elseif(isset($Response['result']) && is_array($Response['result']) && count($Response['result']) > 0) {
+			if(isset($Response['result'][$this->pair]['c']['0'])) {
+				$this->price = $Response['result'][$this->pair]['c']['0'];
 				return true;
             }
 			return false;
 		}
 		else {
-			krumo($this->Response);
+			krumo($Response);
 			die("Ticker Error");
 		}
 
@@ -331,24 +339,24 @@ class Exchange {
 
 	public function Balance() {
 		
-		$this->Response = $this->API->QueryPrivate('Balance');
+		$Response = $this->API->QueryPrivate('Balance');
 		if($this->debug)
-			krumo($this->Response);
+			krumo($Response);
 
-		if(isset($this->Response['error']) && is_array($this->Response['error']) && count($this->Response['error']) > 0) {
+		if(isset($Response['error']) && is_array($Response['error']) && count($Response['error']) > 0) {
 			$this->Error = '';
-			foreach($this->Response['error'] as $message) {
+			foreach($Response['error'] as $message) {
 				$this->Error .= $message;
 			}
 			return false;
 		}
 		// ELSE (Order OK)
-		elseif(isset($this->Response['result']) && is_array($this->Response['result']) && count($this->Response['result']) > 0) {
-				$this->Balance = $this->Response['result'];
+		elseif(isset($Response['result']) && is_array($Response['result']) && count($Response['result']) > 0) {
+				$this->Balance = $Response['result'];
 				return true;
 		}
 		else {
-			krumo($this->Response);
+			krumo($Response);
 			die("Balance Error");
 		}
 

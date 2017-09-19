@@ -108,15 +108,51 @@ if(is_array($Alert->List) && count($Alert->List) > 0) {
 $Ledger = new Ledger();
 if($Ledger->selectEmptyReference() === true) {
     foreach($Ledger->List as $id => $detail) {
+        echo "Ledger:emptyReference= $detail->volume-$detail->price($id)\n";
         $Exchange = new $Exchange();
         if($Exchange->searchOrder($detail->addDate, $detail->volume, $detail->price) === true) {
+            echo "Exchange:foundOrder= $Exchange->reference\n";
              // STORE Reference of Last Order
              $Ledger->reference = $Exchange->reference;
-             $Ledger->update($id);
+             $Ledger->updateReference($id);
         }        
     }
 }
 
+/*
+ * CLOSE ORDER
+ * Get Transaction details and fill interesting data (status, exec)
+ */
+$Ledger = new Ledger();
+if($Ledger->select(50, 'open', 1) === true) {
+    $ReferenceList = array();
+    foreach($Ledger->List as $id => $detail) {
+        echo "Ledger:openOrders= $detail->reference($id)\n";
+        $ReferenceList[] = $detail->reference;
+    }
+  
+    if(count($ReferenceList)) {
+  
+        $Exchange = new $Exchange();
+        if($Exchange->QueryOrders(0, $ReferenceList) === true) {
+
+            if($debug)
+                krumo($Exchange);
+
+            foreach($Exchange->List as $reference => $detail) {
+                $Ledger->status       = $detail->status;
+                $Ledger->description  = $detail->description;
+                $Ledger->volume_executed = $detail->volume;
+                $Ledger->price_executed = $detail->price;
+                $Ledger->cost         = $detail->cost;
+                $Ledger->fee          = $detail->fee;
+                $Ledger->trades       = $detail->trades;
+
+                $Ledger->updateByReference($reference);
+            }
+        } 
+    }
+}
  
 
 

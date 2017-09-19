@@ -7,14 +7,14 @@
 
 class Ledger {
    
-    /* DB */
+    /* CONFIG STRINGS */
     private $db;
+    public $exchange;
+    public $pair;
 
     /* DB STRINGS */
     public $id;
     public $parentid;
-    public $exchange;
-    public $pair;
     public $reference;
     public $orderAction;
     public $type;
@@ -23,9 +23,16 @@ class Ledger {
     public $total;
     public $takeProfit;
     public $stopLoss;
+    public $description;
+    public $volume_executed;
+    public $price_executed;
+    public $cost;
+    public $fee;
+    public $trades;
     public $status;
     public $scalp='none';
     public $addDate;
+    public $updateDate;
     public $closeDate;
 
     /* OTHER STRINGS */
@@ -46,8 +53,8 @@ class Ledger {
         $this->db = $db;
 
         $this->alert    = $alert;
-        $this->exchange = $exchange;
-        $this->pair     = $pair;       
+				$this->exchange = $exchange;
+        $this->pair     = $pair;
     }
 
 
@@ -75,7 +82,7 @@ class Ledger {
     public function round() {
         $this->volume       = round($this->volume-0.0001, 4, PHP_ROUND_HALF_DOWN);
         $this->price        = round($this->price, 3);
-        $this->priceWish    = round($this->priceWish, 3);
+        //$this->priceWish    = round($this->priceWish, 3);
         $this->total        = round($this->total, 3);
         $this->takeProfit   = round($this->takeProfit, 3);
         $this->stopLoss     = round($this->stopLoss, 3);
@@ -99,8 +106,8 @@ class Ledger {
 		    if($this->parentid)
             $query_ins .= ", parentid = $this->parentid";
             
-        if($this->priceWish)
-            $query_ins .= ", priceWish = '$this->priceWish'";
+        /*if($this->priceWish)
+            $query_ins .= ", priceWish = '$this->priceWish'";*/
         
         if($this->takeProfit_active == 1)
             $query_ins .= ", takeProfit = '$this->takeProfit'";
@@ -132,9 +139,35 @@ class Ledger {
 
     }
 
-    public function update($id) {
+    public function updateReference($id) {
         
-        $query = "UPDATE trade_ledger SET reference = '$this->reference' WHERE id = $id;";
+        $query = "UPDATE trade_ledger SET reference = '".$this->db->real_escape_string($this->reference)."' WHERE id = $id LIMIT 1;";
+
+        $sql = $this->db->query($query);
+        mysqlerr($this->db, $query);        
+    }
+
+
+    public function updateByReference($reference) {
+        
+        $query = "UPDATE trade_ledger SET updateDate = NOW()";
+        
+        if($this->description)
+            $query .= ", description = '".$this->db->real_escape_string($this->description)."'";
+        if($this->volume_executed)
+            $query .= ", volume_executed = $this->volume_executed";
+        if($this->price_executed)
+            $query .= ", price_executed = $this->price_executed";
+        if($this->cost)
+            $query .= ", cost = $this->cost";
+        if($this->fee)
+            $query .= ", fee = $this->fee";
+        if($this->trades)
+            $query .= ", trades = '".$this->db->real_escape_string($this->trades)."'";
+        if($this->status)
+            $query .= ", status = '".$this->db->real_escape_string($this->status)."'";
+        
+        $query .= " WHERE reference = '".$this->db->real_escape_string($reference)."' LIMIT 1;";
 
         $sql = $this->db->query($query);
         mysqlerr($this->db, $query);        
@@ -142,7 +175,7 @@ class Ledger {
 
     public function close($id, $price) {
         
-        $query = "UPDATE trade_ledger SET status = 'closed' WHERE id = $id;";
+        $query = "UPDATE trade_ledger SET status = 'closed' WHERE id = $id LIMIT 1;";
 
         $sql = $this->db->query($query);
         mysqlerr($this->db, $query);
@@ -159,7 +192,7 @@ class Ledger {
 
     public function closeScalp($id) {
          
-        $query = "UPDATE trade_ledger SET scalp = 'closed' WHERE id = $id;";
+        $query = "UPDATE trade_ledger SET scalp = 'closed' WHERE id = $id LIMIT 1;";
 
         $sql = $this->db->query($query);
         mysqlerr($this->db, $query);
@@ -167,8 +200,13 @@ class Ledger {
     }
 
 
-    public function select($limit = 10) {
-        $query = "SELECT * FROM trade_ledger ORDER BY addDate DESC LIMIT $limit;";
+    public function select($limit = 10, $status = '', $referenceFilled = 0) {
+        $query = "SELECT * FROM trade_ledger WHERE 1 ";
+		if($status)
+				$query .= " AND status = '$status'";
+		if($referenceFilled) // Search for orders with a reference and trigger a status update
+				$query .= " AND reference IS NOT NULL";
+		$query .= " ORDER BY addDate DESC LIMIT $limit;";
         
         $sql = $this->db->query($query);
         mysqlerr($this->db, $query);
@@ -176,9 +214,12 @@ class Ledger {
         if(isset($sql->num_rows) && $sql->num_rows > 0) {
             $this->List = array();
             while($row = $sql->fetch_object()) {
-				$this->List[$row->id] = $row;
+								$this->List[$row->id] = $row;
             }
+        return true;
         }
+        else
+            return false;
     }
 
     public function selectScalp($price) {
@@ -198,7 +239,7 @@ class Ledger {
         }
     }
 
-    public function selectEmptyReference($limit = 5) {
+    public function selectEmptyReference($limit = 2) {
         $query = "SELECT id, volume, price, addDate FROM trade_ledger WHERE reference IS NULL ORDER BY addDate DESC LIMIT $limit;";
         
         $sql = $this->db->query($query);
@@ -213,7 +254,8 @@ class Ledger {
         }
         else
             return false;
-    }    
+    }
+	
 
 
     public function get($id) {
@@ -236,8 +278,15 @@ class Ledger {
             $this->total    	= $row->total;
             $this->takeProfit  	= $row->takeProfit;
             $this->stopLoss		= $row->stopLoss;
+            $this->description  = $row->description;
+            $this->volume_executed = $row->volume_executed;
+            $this->price_executed  = $row->price_executed;
+            $this->cost         = $row->cost;
+            $this->fee          = $row->fee;
+            $this->trades       = $row->trades;
             $this->status		= $row->status;
             $this->addDate    	= $row->addDate;
+            $this->updateDate   = $row->updateDate;
             $this->closeDate  	= $row->closeDate;
         }
     }

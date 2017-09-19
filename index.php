@@ -97,7 +97,7 @@ if(isset($_POST['addOrder']) && $_POST['addOrder']) {
         if($Exchange->AddOrder($Ledger->id) === true) {
             // STORE Reference of Last Order
             $Ledger->reference = $Exchange->reference;
-            $Ledger->update($Ledger->id);
+            $Ledger->updateReference($Ledger->id);
 
             $message[] = new ErrorMessage('success', $Exchange->Success);
 
