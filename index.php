@@ -28,11 +28,11 @@ $db = connecti();
 $message = array();
 
 // Query Data
-if(isset($_GET['debug']) && $_GET['debug'] > 0) { $debug = $_GET['debug']; }
+if(isset($_GET['debug']) && $_GET['debug'] > 0) { $debug = (int) $_GET['debug']; }
 else $debug = 0;
 
 if(isset($_GET['purge']) && $_GET['purge'] == 1) {
-    setcookie("SimpleKraken", '', 1);
+    setcookie("SimpleTrader", '', 1);
     $purge = 1;
 }
 else $purge = 0;
@@ -44,9 +44,9 @@ if($debug)
 /*
  * CALL BACK COOKIE
  */
-if(!$purge && isset($_COOKIE["SimpleKraken"]) && $_COOKIE["SimpleKraken"]) {
+if(!$purge && isset($_COOKIE["SimpleTrader"]) && $_COOKIE["SimpleTrader"]) {
 
-    $cookie     = json_decode($_COOKIE["SimpleKraken"], true);
+    $cookie     = json_decode($_COOKIE["SimpleTrader"], true);
     $Last       = $cookie['Last'];
     $Balance    = $cookie['Balance'];
     $OpenOrders = $cookie['openOrders'];
@@ -102,7 +102,7 @@ if(isset($_POST['addOrder']) && $_POST['addOrder']) {
             $message[] = new ErrorMessage('success', $Exchange->Success);
 
             // Delete Cookie
-            setcookie("SimpleKraken", '', 1);
+            setcookie("SimpleTrader", '', 1);
         }
         else {
             $message[] = new ErrorMessage('danger', $Exchange->Error);
@@ -223,33 +223,11 @@ else {
         $cookie['Last']         = $Last;
         $cookie['openOrders']   = $OpenOrders;
 
-        setcookie("SimpleKraken", json_encode($cookie), time()+3600);
+        setcookie("SimpleTrader", json_encode($cookie), time()+3600);
     }
 
 
-    // Google Chart on History
-    $History = new History();
-    $History->select();
 
-    if(isset($History->List) && is_array($History->List) && count($History->List) > 0) {
-
-        $i=0;
-        $googleChartData = array();
-
-        foreach($History->List as $id => $detail) {
-            $googleChartData[$i] = new stdClass();
-            $googleChartData[$i] = $detail;
-            $i++;
-        }
-
-        krsort($googleChartData);
-
-        $googleChartRows = "";
-        foreach($googleChartData as $data) {
-            $googleChartRows .= "\t\t\t\t[new Date (".date('Y,n,d,H,i,s', strtotime($data->addDate))."), ".$data->price."],\n";
-        }
-
-    }
 
     // Active Alerts
     $Alert = new Alert();
@@ -389,47 +367,68 @@ ob_flush();
             });
 
 
+            // Load the Visualization API
+            //google.charts.load('current', {packages: ['table']});
             google.charts.load('current', {packages: ['corechart', 'line']});
-            google.charts.setOnLoadCallback(drawBasic);
 
-            function drawBasic() {
+            // Set a callback to run when the Google Visualization API is loaded.
+            google.charts.setOnLoadCallback(drawChartShort);
 
-                var data = new google.visualization.DataTable();
-                data.addColumn('date', 'Time'); // date | timeofday
-                data.addColumn('number', 'Price');
-                //data.addColumn({type: 'string', role: 'tooltip'});
+            function drawChartShort() {
 
-                data.addRows([<?php echo $googleChartRows; ?>]);
+                var jsonData = $.ajax({
+                url: "chart.ajax.php",
+                data: {limit: 50},
+                dataType: "json",
+                method: "POST",
+                async: false
+                }).responseText;
+
+                //jsonData = jsonData.replace(/\"({v[^v]*})\"/gi,"$1");
+
+                console.log(jsonData);
+
+                // Create our data table out of JSON data loaded from server.
+                var data = new google.visualization.DataTable(jsonData);
 
                 var options = {
+                    title: 'Short term analysis',
                     legend: 'none',
-                    hAxis: {
-                        //title: 'Date'
-                        //format: 'HH:mm:ss',
-                        gridlines: {
-                            count: -1,
-                            units: {
-                                hours: {format: ['hh:mm:ss']},
-                                minutes: {format: ['HH:mm']}
-                            }
-                        },
-                        minorGridlines: {
-                            units: {
-                                hours: {format: ['hh:mm:ss']},
-                                minutes: {format: ['HH:mm']}
-                            }
-                        }
-                        
-                    },
-                    vAxis: {
-                        //title: 'Price',
-                        format: '###,###,###.00 €', //'currency'
-                    },
                     pointSize: 0,
                     
                 };
 
-                var chart = new google.visualization.LineChart(document.getElementById('chart_div'));
+                //var chart = new google.visualization.Table(document.getElementById('chart_short_div'));
+                var chart = new google.visualization.LineChart(document.getElementById('chart_short_div'));
+
+                chart.draw(data, options);
+            }
+
+
+            // Set a callback to run when the Google Visualization API is loaded.
+            google.charts.setOnLoadCallback(drawChartLong);
+
+            function drawChartLong() {
+
+                var jsonData = $.ajax({
+                url: "chart.ajax.php",
+                data: {limit: 1440},
+                dataType: "json",
+                method: "POST",
+                async: false
+                }).responseText;
+
+                // Create our data table out of JSON data loaded from server.
+                var data = new google.visualization.DataTable(jsonData);
+
+                var options = {
+                    title: 'Long term analysis',
+                    legend: 'none',
+                    pointSize: 0,
+                    
+                };
+
+                var chart = new google.visualization.LineChart(document.getElementById('chart_long_div'));
 
                 chart.draw(data, options);
             }
@@ -516,7 +515,8 @@ else {
                         </div>
 
                         <div class="row">
-                            <div id="chart_div"></div>
+                            <div id="chart_short_div"></div>
+                            <div id="chart_long_div"></div>
                         </div>
 
                     </div>

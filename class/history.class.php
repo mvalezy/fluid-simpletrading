@@ -47,7 +47,7 @@ class History {
     }
 
 
-    public function select($limit = 50) {
+    public function select($limit = 10) {
         $query = "SELECT * FROM trade_history ORDER BY addDate DESC LIMIT $limit;";
         
         $sql = $this->db->query($query);

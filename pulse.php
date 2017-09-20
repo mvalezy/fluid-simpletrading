@@ -29,7 +29,7 @@ require_once('api/nma.api.php');
 $db = connecti();
 
 // Query Data
-if(isset($_GET['debug']) && $_GET['debug'] > 0) { $debug = $_GET['debug']; }
+if(isset($_GET['debug']) && $_GET['debug'] > 0) { $debug = (int) $_GET['debug']; }
 else $debug = 0;
 
 
@@ -109,13 +109,20 @@ $Ledger = new Ledger();
 if($Ledger->selectEmptyReference() === true) {
     foreach($Ledger->List as $id => $detail) {
         echo "Ledger:emptyReference= $detail->volume-$detail->price($id)\n";
+
+        // 1- ORDER FOUND on Exchange > Update Reference
         $Exchange = new $Exchange();
         if($Exchange->searchOrder($detail->addDate, $detail->volume, $detail->price) === true) {
             echo "Exchange:foundOrder= $Exchange->reference\n";
              // STORE Reference of Last Order
              $Ledger->reference = $Exchange->reference;
              $Ledger->updateReference($id);
-        }        
+        }
+
+        // 2- ORDER NOT FOUND on Exchange > Retry Order
+        else {
+            // RETRY ORDER
+        }
     }
 }
 
@@ -140,6 +147,8 @@ if($Ledger->select(50, 'open', 1) === true) {
                 krumo($Exchange);
 
             foreach($Exchange->List as $reference => $detail) {
+                echo "Ledger:updateByReference= $reference\n";
+
                 $Ledger->status       = $detail->status;
                 $Ledger->description  = $detail->description;
                 $Ledger->volume_executed = $detail->volume;
