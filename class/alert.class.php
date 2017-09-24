@@ -62,22 +62,22 @@ class Alert {
 
             case 'more':
                 $this->API->event = $this->API->application = "Target price reached";
-                $this->API->description = "[$this->pair] Target price reached $this->price";
+                $this->API->description = "[$this->pair] Target price reached ".money_format('%i', $this->price);
                 break;
 
             case 'less':
                 $this->API->event = $this->API->application = "Low price reached";
-                $this->API->description = "[$this->pair] Low price reached $this->price";
+                $this->API->description = "[$this->pair] Low price reached ".money_format('%i', $this->price);
                 break;
 
             case 'even':
                 $this->API->event = $this->API->application = "Price reached";
-                $this->API->description = "[$this->pair] Price reached $this->price";
+                $this->API->description = "[$this->pair] Price reached ".money_format('%i', $this->price);
                 break;
 
             case 'now':
                 $this->API->event = $this->API->application = "Order closed";
-                $this->API->description = "[$this->pair] Price $this->price";
+                $this->API->description = "[$this->pair] Price ".money_format('%i', $this->price);
                 break;
 
         }
@@ -86,12 +86,12 @@ class Alert {
             $obj = new Ledger();
             $obj->get($this->ledgerid);
 
-            $this->API->description .= ". Order($obj->id) $obj->orderAction $obj->type price:$obj->price vol:$obj->volume tot:$obj->total ref:$obj->exchange.";
+            $this->API->description .= ". Order($obj->id) $obj->orderAction $obj->type price:".money_format('%i', $obj->price)." vol:".round($obj->volume,2)." tot:".money_format('%i', $obj->total)." ref:$obj->exchange.";
         }
 
         if($price) {
             $price = round($price, 1);
-            $this->API->description .= ". Current price $price.";
+            $this->API->description .= ". Current price ".money_format('%i', $price);
         }
   
   
@@ -115,7 +115,7 @@ class Alert {
     }
 
 
-    public function add($operator, $price = 0) {
+    public function add($operator = 'less', $price = 0) {
 
         switch($operator) {
             case '>':

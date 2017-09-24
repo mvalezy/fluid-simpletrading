@@ -6,32 +6,14 @@ header('Retry-After: 3600');
 die("MAINTENANCE MODE");*/
 
 
-// CONFIG
-require_once('config/config.inc.php');
-
-// UTILS AND THIRD PARTY
-require_once('functions.inc.php'); 
-require_once('config/kraken.api.config.php'); 
-require_once('config/nma.api.config.php'); 
-
-// Class
-require_once('class/error.class.php'); 
-require_once('class/history.class.php'); 
-require_once('class/ledger.class.php'); 
-require_once('class/alert.class.php');
-
-// API
-require_once('api/kraken.api.php');
-require_once('api/nma.api.php');
-
-
-// Open SQL connection
-$db = connecti();
+require('depedencies.inc.php');
 
 // Query Data
 if(isset($_GET['debug']) && $_GET['debug'] > 0) { $debug = (int) $_GET['debug']; }
 else $debug = 0;
 
+if(isset($_GET['price']) && $_GET['price'] > 0) { $price = (int) $_GET['price']; }
+else $price = 0;
 
 /*
  * CRON CONFIG
@@ -49,14 +31,16 @@ else $debug = 0;
  * TICKER
  * QUERY Current Price
  */
-$Exchange = new Exchange();
-if($Exchange->Ticker() === true) {
-    $price = $Exchange->price;
+if(!$price) {
+    $Exchange = new Exchange();
+    if($Exchange->Ticker() === true) {
+        $price = $Exchange->price;
 
-    echo "Ticker:".TRADE_PAIR."=$price\n";
+        echo "Ticker:".TRADE_PAIR."=$price\n";
 
-    $History = new History();
-    $History->add($price);
+        $History = new History();
+        $History->add($price);
+    }
 }
 
 /*
@@ -92,12 +76,19 @@ if(is_array($Alert->List) && count($Alert->List) > 0) {
         $Ledger->parentid       = $id;
         $Ledger->orderAction    = 'sell';
         $Ledger->type           = 'market';
-        $Ledger->priceWish      = $price;
+        $Ledger->price          = $price;
         $Ledger->volume         = $detail->volume;
+        $Ledger->total          = $Ledger->price * $Ledger->volume;
 
+        $Ledger->round();
         $Ledger->add();
-        $Ledger->reference = 'XXXX'; // DEBUG
-        $Ledger->close($Ledger->id, $price);
+
+        $Exchange = new Exchange();
+        if($Exchange->AddOrder($Ledger->id) === true) {
+            // STORE Reference of Last Order
+            $Ledger->reference = $Exchange->reference;
+            $Ledger->updateReference($Ledger->id);
+        }
     }
 }
 
@@ -131,7 +122,7 @@ if($Ledger->selectEmptyReference() === true) {
  * Get Transaction details and fill interesting data (status, exec)
  */
 $Ledger = new Ledger();
-if($Ledger->select(50, 'open', 1) === true) {
+if($Ledger->selectRefresh(3) === true) {
     $ReferenceList = array();
     foreach($Ledger->List as $id => $detail) {
         echo "Ledger:openOrders= $detail->reference($id)\n";

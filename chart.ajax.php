@@ -1,6 +1,6 @@
 <?php
 
-//header('Access-Control-Allow-Methods: POST');
+header('Access-Control-Allow-Methods: GET');
 
 // CONFIG
 require_once('config/config.inc.php');
@@ -24,10 +24,10 @@ require_once('class/history.class.php');
 $db = connecti();
 
 // Query Data
-if(isset($_POST['debug']) && $_POST['debug'] > 0) { $debug = (int) $_POST['debug']; }
+if(isset($_GET['debug']) && $_GET['debug'] > 0) { $debug = (int) $_GET['debug']; }
 else $debug = 0;
 
-if(isset($_POST['limit']) && $_POST['limit'] > 0) { $limit = (int) $_POST['limit']; }
+if(isset($_GET['limit']) && $_GET['limit'] > 0) { $limit = (int) $_GET['limit']; }
 else $limit = 2;
 
 
@@ -48,49 +48,69 @@ if(isset($History->List) && is_array($History->List) && count($History->List) > 
     }
 
     krsort($googleChartData);
+   
+    $i=0;
+    $googleChartCols[$i]->id     = 'date';
+    $googleChartCols[$i]->label  = 'Time';
+    $googleChartCols[$i]->type   = 'datetime';
+    
+    $i++;
+    $googleChartCols[$i]->id     = 'price';
+    $googleChartCols[$i]->label  = 'Price';
+    $googleChartCols[$i]->type   = 'number';
 
-                    /*data.addColumn('date', 'Time'); // date | timeofday
-                data.addColumn('number', 'Price');*/
-                //data.addColumn({type: 'string', role: 'tooltip'});
+    /*
+    // If strict declaration needed
+    $googleChartRows = $googleChartCols = array();
+    $objCol = new stdClass();
+    $objCol->id    = 'date';
+    $objCol->label = 'Time';
+    $objCol->type  = 'datetime';
+    $googleChartCols[] = $objCol;
 
-    $googleChartRows = $googleChartCols = array();  
+    $objCol = new stdClass();
+    $objCol->id    = 'price';
+    $objCol->label = 'Price';
+    $objCol->type  = 'number';
+    $googleChartCols[] = $objCol;
+    */
 
-    $objDate = new stdClass();
-    $objDate->id    = 'date';
-    $objDate->label = 'Time';
-    $objDate->type  = 'datetime';
-    $googleChartCols[] = $objDate;
-
-    $objPrice = new stdClass();
-    $objPrice->id    = 'price';
-    $objPrice->label = 'Price';
-    $objPrice->type  = 'number';
-    $googleChartCols[] = $objPrice;
-
-    foreach($googleChartData as $i => $data) {
+    $i=0;
+    foreach($googleChartData as $data) {
         
+        $googleChartRows[$i]->c[0]->v = "Date(".date('Y,n,d,H,i,s', strtotime($data->addDate)).")";
+        if($limit < 50)        
+            $googleChartRows[$i]->c[0]->f = date('H:i', strtotime($data->addDate));
+        elseif($limit < 1000)        
+            $googleChartRows[$i]->c[0]->f = date('H:i', strtotime($data->addDate));
+        else
+            $googleChartRows[$i]->c[0]->f = date('d/m H:i', strtotime($data->addDate));
+
+        $googleChartRows[$i]->c[1]->v = $data->price;
+
+        $i++;
+
+        /*
+        // If strict declaration needed
         $objRow     = new stdClass();
         $objRow->c = array();
 
-        $objDate   = new stdClass();
-        $objDate->v = "Date(".date('Y,n,d,H,i,s', strtotime($data->addDate)).")";
-        //$objDate->f = date('H:i', strtotime($data->addDate));
-        $objDate->f = date('H:i', strtotime($data->addDate));
-        $objRow->c[] = $objDate;
+        $objData   = new stdClass();
+        $objData->v = "Date(".date('Y,n,d,H,i,s', strtotime($data->addDate)).")";
+        if($limit < 50)        
+            $objData->f = date('H:i', strtotime($data->addDate));
+        elseif($limit < 1000)        
+            $objData->f = date('H:i', strtotime($data->addDate));
+        else
+            $objData->f = date('d/m H:i', strtotime($data->addDate));
+        $objRow->c[] = $objData;
 
-        $objPrice   = new stdClass();
-        $objPrice->v = $data->price;
-        $objRow->c[] = $objPrice;
-        
-        /*$objRow     = new stdClass();
-        $objRow->c = array();
-
-        $objRow->c[] = "{v: new Date (".date('Y,n,d,H,i,s', strtotime($data->addDate)).")}";
-        $objRow->c[] = "{v: $data->price}";*/
-
+        $objData   = new stdClass();
+        $objData->v = $data->price;
+        $objRow->c[] = $objData;
 
         $googleChartRows[] = $objRow;
-        
+        */       
     }
 
     $googleChart = array('cols' => $googleChartCols, 'rows' => $googleChartRows);

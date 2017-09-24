@@ -2,27 +2,7 @@
 
 ob_start();
 
-// CONFIG
-require_once('config/config.inc.php');
-
-// UTILS AND THIRD PARTY
-require_once('functions.inc.php'); 
-require_once('config/kraken.api.config.php'); 
-require_once('config/nma.api.config.php'); 
-
-// Class
-require_once('class/error.class.php'); 
-require_once('class/history.class.php'); 
-require_once('class/ledger.class.php'); 
-require_once('class/alert.class.php');
-
-// API
-require_once('api/kraken.api.php');
-require_once('api/nma.api.php');
-
-
-// Open SQL connection
-$db = connecti();
+require('depedencies.inc.php');
 
 // Initiate vars
 $message = array();
@@ -30,6 +10,12 @@ $message = array();
 // Query Data
 if(isset($_GET['debug']) && $_GET['debug'] > 0) { $debug = (int) $_GET['debug']; }
 else $debug = 0;
+
+if(isset($_GET['id']) && $_GET['id'] > 0) { $id = (int) $_GET['id']; }
+else $id = 0;
+
+if(isset($_GET['cancel']) && $_GET['cancel'] != '') { $cancel = $_GET['cancel']; }
+else $cancel = '';
 
 if(isset($_GET['purge']) && $_GET['purge'] == 1) {
     setcookie("SimpleTrader", '', 1);
@@ -109,9 +95,9 @@ if(isset($_POST['addOrder']) && $_POST['addOrder']) {
         }
 
         if($debug)
-            krumo($Exchange);        
+            krumo($Exchange);
     }
- 
+
 } // END POST ORDER
 
 
@@ -121,14 +107,12 @@ if(isset($_POST['addOrder']) && $_POST['addOrder']) {
 elseif(isset($_POST['addAlert']) && $_POST['addAlert'] == 1) {
 
 
-
-
     if(!isset($_POST['priceAlert']) || !$_POST['priceAlert'])
         $message[] = new ErrorMessage('danger', 'Price is not set');
-	
+
     $Alert = new Alert();
 
-    $Alert->add($_POST['priceAlert'], $_POST['operator']);
+    $Alert->add($_POST['operator'], $_POST['priceAlert']);
 
     $message[] = new ErrorMessage('success', "New alert at ".$_POST['operator']." ".$_POST['priceAlert']." posted.");
 
@@ -141,15 +125,24 @@ else {
      * CANCEL
      */
 
-    if(isset($_GET['cancel']) && $_GET['cancel']) {
-        $Exchange = new Exchange();
+    if($cancel) {
 
-        if($Exchange->CancelOrder(0, $_GET['cancel']) === true) {
-            $message[] = new ErrorMessage('success', $Exchange->Success);
-            unset($OpenOrders); // Clear List Array
+        if($cancel != 'SIMULATOR') {
+            $Exchange = new Exchange();
+
+            if($Exchange->CancelOrder(0, $cancel) === true) {
+                $message[] = new ErrorMessage('success', $Exchange->Success);
+                $Ledger = new Ledger();
+                $Ledger->cancelByReference($cancel);
+                unset($OpenOrders); // Clear List Array
+            }
+            else {
+                $message[] = new ErrorMessage('danger', $Exchange->Error);
+            }
         }
         else {
-            $message[] = new ErrorMessage('danger', $Exchange->Error);
+            $Ledger = new Ledger();
+            $Ledger->cancel($id);
         }
     }
 
@@ -158,7 +151,7 @@ else {
     * DISPLAY
     */
 
-    // Query Last Exhange PAIR price 
+    // Query Last Exhange PAIR price
     if(!isset($Last)) {
         $Exchange = new Exchange();
         if($Exchange->Ticker() === true) {
@@ -232,9 +225,9 @@ else {
     // Active Alerts
     $Alert = new Alert();
     $Alert->select();
-    
 
-	
+
+
 } // END DISPLAY
 
 ob_flush();
@@ -247,206 +240,42 @@ ob_flush();
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <title>Simple Trader Beta</title>
-        
-        <script src="//code.jquery.com/jquery-3.1.0.min.js" integrity="sha256-cCueBR6CsyA4/9szpPfrX3s49M9vUU5BgtiJj06wt/s=" crossorigin="anonymous"></script>
-    
+
+        <!-- Jquery -->
+        <script src="https://code.jquery.com/jquery-3.2.1.min.js" integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4=" crossorigin="anonymous"></script>
+
+        <!-- Bootstrap 4 -->
+        <!--<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.6/css/bootstrap.min.css" integrity="sha384-rwoIResjU2yc3z8GV/NPeZWAv56rSmLldC3R/AZzGRnGxQQKnKkoFVhFQhNUwEyJ" crossorigin="anonymous">
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/tether/1.4.0/js/tether.min.js" integrity="sha384-DztdAPBWPRXSA/3eYEEUWrWCy7G5KFbe8fFjk5JAIxUYHKkDx6Qin1DkWx51bBrb" crossorigin="anonymous"></script>
+        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.6/js/bootstrap.min.js" integrity="sha384-vBWWzlZJ8ea9aCX4pEW3rVHjgjt7zpkNpZk+02D9phzyeVkE+jo0ieGizqPLForn" crossorigin="anonymous"></script>-->
+
         <!-- Latest compiled and minified CSS -->
-        <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
 
         <!-- Optional theme -->
-        <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap-theme.min.css" integrity="sha384-rHyoN1iRsVXV4nD0JutlnGaslCJuC7uwjduW9SVrLvRYooPp2bWYgmgJQIXwl/Sp" crossorigin="anonymous">
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap-theme.min.css" integrity="sha384-rHyoN1iRsVXV4nD0JutlnGaslCJuC7uwjduW9SVrLvRYooPp2bWYgmgJQIXwl/Sp" crossorigin="anonymous">
 
         <!-- Latest compiled and minified JavaScript -->
-        <script src="//maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
 
         <!-- Google Graph API -->
         <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
 
-        <style>
-            .btn-circle {
-                width: 30px;
-                height: 30px;
-                text-align: center;
-                padding: 6px 0;
-                font-size: 12px;
-                line-height: 1.428571429;
-                border-radius: 15px;
-            }
-            .btn-circle.btn-lg {
-                width: 50px;
-                height: 50px;
-                padding: 10px 16px;
-                font-size: 18px;
-                line-height: 1.33;
-                border-radius: 25px;
-            }
-            .btn-circle.btn-xl {
-                width: 70px;
-                height: 70px;
-                padding: 10px 16px;
-                font-size: 24px;
-                line-height: 1.33;
-                border-radius: 35px;
-            }
-            .loader {
-                display:none;
-            }
-            .loader div {
-                position: fixed;
-                left: 0px;
-                top: 0px;
-                width:100%;
-                height:100%;
-            }
+        <link rel="stylesheet" href="style/simpletrader.css">
+        <script type="text/javascript" src="script/simpletrader.js"></script>
 
-            .loader-bg {
-                z-index: 9998;
-                filter:alpha(opacity=50);
-                opacity:0.5;
-                background-color:white;
-            }
-
-            .loader-img {
-                z-index: 9999;
-                background: url('images/Preloader_7.gif') 50% 50% no-repeat;
-                filter:alpha(opacity=100);
-                opacity:1;
-            }
-
-            .colorgraph {
-                height: 7px;
-                border-top: 0;
-                background: #c4e17f;
-                border-radius: 5px;
-                background-image: -webkit-linear-gradient(left, #c4e17f, #c4e17f 12.5%, #f7fdca 12.5%, #f7fdca 25%, #fecf71 25%, #fecf71 37.5%, #f0776c 37.5%, #f0776c 50%, #db9dbe 50%, #db9dbe 62.5%, #c49cde 62.5%, #c49cde 75%, #669ae1 75%, #669ae1 87.5%, #62c2e4 87.5%, #62c2e4);
-                background-image: -moz-linear-gradient(left, #c4e17f, #c4e17f 12.5%, #f7fdca 12.5%, #f7fdca 25%, #fecf71 25%, #fecf71 37.5%, #f0776c 37.5%, #f0776c 50%, #db9dbe 50%, #db9dbe 62.5%, #c49cde 62.5%, #c49cde 75%, #669ae1 75%, #669ae1 87.5%, #62c2e4 87.5%, #62c2e4);
-                background-image: -o-linear-gradient(left, #c4e17f, #c4e17f 12.5%, #f7fdca 12.5%, #f7fdca 25%, #fecf71 25%, #fecf71 37.5%, #f0776c 37.5%, #f0776c 50%, #db9dbe 50%, #db9dbe 62.5%, #c49cde 62.5%, #c49cde 75%, #669ae1 75%, #669ae1 87.5%, #62c2e4 87.5%, #62c2e4);
-                background-image: linear-gradient(to right, #c4e17f, #c4e17f 12.5%, #f7fdca 12.5%, #f7fdca 25%, #fecf71 25%, #fecf71 37.5%, #f0776c 37.5%, #f0776c 50%, #db9dbe 50%, #db9dbe 62.5%, #c49cde 62.5%, #c49cde 75%, #669ae1 75%, #669ae1 87.5%, #62c2e4 87.5%, #62c2e4);
-            }
-        </style>
-
-        <script type="text/javascript">
-            $(document).ready(function() {
-
-                $("#price").keyup(function() {
-
-                    var order  = $("#orderAction input[type='radio']:checked").val();
-                    var price = $("#price").val();
-
-                    if(order == 'buy') {
-                        var total = $("#total").val();
-                        var volume = Math.round((total / price * 100000 )) / 100000;
-
-                        $("#volume").val(volume);
-
-                    }
-                    else {
-                        var volume = $("#volume").val();
-                        var total = Math.round((volume * price * 100000 )) / 100000;
-
-                        $("#total").val(total);
-
-                    }
-
-                });
-
-                $("#BalanceZEUR").click(function() {
-
-                    var balance  = Math.round(($("#BalanceZEUR").val() * 100 )) / 100;
-                    $("#total").val(balance);
-
-                });
-
-                $("#BalanceXETH").click(function() {
-
-                    var balance  = Math.round(($("#BalanceXETH").val() * 100000 )) / 100000;
-                    $("#volume").val(balance);
-
-                });
-
-            });
-
-
-            // Load the Visualization API
-            //google.charts.load('current', {packages: ['table']});
-            google.charts.load('current', {packages: ['corechart', 'line']});
-
-            // Set a callback to run when the Google Visualization API is loaded.
-            google.charts.setOnLoadCallback(drawChartShort);
-
-            function drawChartShort() {
-
-                var jsonData = $.ajax({
-                url: "chart.ajax.php",
-                data: {limit: 50},
-                dataType: "json",
-                method: "POST",
-                async: false
-                }).responseText;
-
-                //jsonData = jsonData.replace(/\"({v[^v]*})\"/gi,"$1");
-
-                console.log(jsonData);
-
-                // Create our data table out of JSON data loaded from server.
-                var data = new google.visualization.DataTable(jsonData);
-
-                var options = {
-                    title: 'Short term analysis',
-                    legend: 'none',
-                    pointSize: 0,
-                    
-                };
-
-                //var chart = new google.visualization.Table(document.getElementById('chart_short_div'));
-                var chart = new google.visualization.LineChart(document.getElementById('chart_short_div'));
-
-                chart.draw(data, options);
-            }
-
-
-            // Set a callback to run when the Google Visualization API is loaded.
-            google.charts.setOnLoadCallback(drawChartLong);
-
-            function drawChartLong() {
-
-                var jsonData = $.ajax({
-                url: "chart.ajax.php",
-                data: {limit: 1440},
-                dataType: "json",
-                method: "POST",
-                async: false
-                }).responseText;
-
-                // Create our data table out of JSON data loaded from server.
-                var data = new google.visualization.DataTable(jsonData);
-
-                var options = {
-                    title: 'Long term analysis',
-                    legend: 'none',
-                    pointSize: 0,
-                    
-                };
-
-                var chart = new google.visualization.LineChart(document.getElementById('chart_long_div'));
-
-                chart.draw(data, options);
-            }
-
-        </script>
-                
         </head>
     <body>
 
         <div class="container-fluid">
 
-            <div id="loginbox" style="margin-top:5px;" class="mainbox col-md-12 col-sm-12">                    
+            <div id="loginbox" style="margin-top:5px;" class="mainbox col-md-12 col-sm-12">
             <div class="panel panel-primary" >
 
                 <div class="panel-heading">
                     <div class="panel-title"><a href="index.php">Simple Trader</a></div>
                     <div style="float:right; font-size: 80%; position: relative; top:-18px"><a href="index.php?purge=1" class="btn btn-default btn-xs" role="button"><span class="glyphicon glyphicon-flash"></span> Clear cache</a></div>
-                </div>     
+                </div>
 
                 <div style="padding-top:10px" class="panel-body" >
 
@@ -461,7 +290,7 @@ if(count($message) > 0) {
 
 if(isset($_POST['addOrder']) && $_POST['addOrder']) {
 
- 
+
 } // END DISPLAY FOR POST ORDER
 
 else {
@@ -473,7 +302,7 @@ else {
 
                             <div class="col-sm-6 col-lg-6">
                                 <h3>Balance</h3>
-                                    
+
                                 <div class="col-xs-3 col-sm-6 col-lg-6">
                                     <input id="UpdateBalanceZEUR" class="btn btn-<?php echo $cssEUR; ?>" type="button" value="<?php echo number_format($Balance['ZEUR'], 2, '.', ' '); ?> EUR">
                                     <input id="BalanceZEUR" type="hidden" value="<?php echo $Balance['ZEUR']; ?>">
@@ -496,7 +325,7 @@ else {
                             <div class="col-sm-12 col-lg-12">
                                 <h3>Pending Orders</h3>
                                 <div class="row">
-                                    
+
                     <?php
 	  								if(is_array($OpenOrders['open']) && count($OpenOrders['open']) > 0)
                                         foreach($OpenOrders['open'] as $OrderID => $OrderContent) {
@@ -515,7 +344,10 @@ else {
                         </div>
 
                         <div class="row">
+                            <div id="table_open_div"></div>
+                            <div id="table_closed_div"></div>
                             <div id="chart_short_div"></div>
+                            <div id="chart_medium_div"></div>
                             <div id="chart_long_div"></div>
                         </div>
 
@@ -538,7 +370,7 @@ else {
                             <div class='error form-group hide'>
                             <div class='alert-danger alert'>
                             Please correct the errors and try again.
-                        
+
                             </div>
                             </div>
                         </div> -->
@@ -585,7 +417,7 @@ else {
                             <div class="col-md-8">
                                 <div class="input-group">
                                 <input type="text" class="form-control" id="volume" name="volume" <?php
-                                
+
                                 if($orderDefault == 'buy') {
                                     echo 'value="'.round($Balance['ZEUR']/$Last,5).'"';
                                 }
@@ -596,7 +428,7 @@ else {
                                 ?>>
                                 <div class="input-group-addon">ETH</div>
                                 </div>
-                            </div>  
+                            </div>
                         </div>
                         </div>
 
@@ -608,7 +440,7 @@ else {
                                 <input type="text" class="form-control" id="price" name="price" value="<?php echo $Last; ?>">
                                 <div class="input-group-addon">EUR</div>
                                 </div>
-                            </div>  
+                            </div>
                         </div>
                         </div>
 
@@ -618,7 +450,7 @@ else {
                             <div class="col-md-8">
                                 <div class="input-group">
                                 <input type="text" class="form-control" id="total" name="total" <?php
-                                
+
                                 if($orderDefault == 'buy') {
                                     echo 'value="'.round($Balance['ZEUR'],4).'"';
                                 }
@@ -629,7 +461,7 @@ else {
                                 ?>>
                                 <div class="input-group-addon">EUR</div>
                                 </div>
-                            </div>  
+                            </div>
                         </div>
                         </div>
                     </div>
@@ -648,7 +480,7 @@ else {
                                 <input type="text" class="form-control" aria-label="" id="takeProfit_rate" name="takeProfit_rate" value="10">
                                 <div class="input-group-addon">%</div>
                                 </div>
-                            </div>  
+                            </div>
                         </div>
                         </div>
 
@@ -663,7 +495,7 @@ else {
                                 <input type="text" class="form-control" aria-label="" id="stopLoss_rate" name="stopLoss_rate" value="3">
                                 <div class="input-group-addon">%</div>
                                 </div>
-                            </div>  
+                            </div>
                         </div>
                         </div>
 
@@ -676,13 +508,13 @@ else {
                         </div>
                     </div>
 
-                
+
                 </form>
 
 
                 <h3>Android notifications</h3>
                 <form id="createAlert" name="createAlert" action="index.php" method="post" class="form-horizontal require-validation" role="form">
-                
+
                     <div class="col-sm-12 col-lg-12">
 
                         <div  class="col-sm-12 col-md-8 col-lg-2">
@@ -712,19 +544,30 @@ if(is_array($Alert->List) && count($Alert->List) > 0) {
                         </div>
 
                         <div class="form-group">
-                            
-                            <div class="col-sm-4 col-md-3 col-lg-2">
-                                <div class="ib btn-group">
-                                    <button type="button" class="btn btn-mini active btn-info" value="less" title="" autocomplete="off" data-original-title="" clicked="clicked"><</button><button type="button" class="btn btn-mini" value="even" title="" autocomplete="off" data-original-title="">=</button><button type="button" class="btn btn-mini" value="more" title="" autocomplete="off" data-original-title="">></button>
+  
+                            <div class="col-md-6">
+                                <div class="radio">
+                                    <label>
+                                        <input type="radio" name="operator" id="operator1" value="less" checked>
+                                        <
+                                    </label>
                                 </div>
-
+                                <div class="radio">
+                                    <label>
+                                        <input type="radio" name="operator" id="operator2" value="even">
+                                        =
+                                    </label>
                                 </div>
+                                <div class="radio">
+                                    <label>
+                                        <input type="radio" name="operator" id="operator3" value="more">
+                                        >
+                                    </label>
+                                </div>
+                            </div>
 
-                                <div class="col-md-9 col-lg-10">
-                        
+                            <div class="col-md-6">
                                 <div class="input-group">
-                                    <input type="hidden" id="operator" name="operator" value="less">   
-                                
                                     <input type="text" class="form-control" id="priceAlert" name="priceAlert" value="<?php echo $Last; ?>">
                                     <div class="input-group-addon">EUR</div>
                                 </div>
@@ -741,7 +584,7 @@ if(is_array($Alert->List) && count($Alert->List) > 0) {
                 </form>
 
             </div>
-            
+
             </div>
             </div>
 

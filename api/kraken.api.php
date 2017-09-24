@@ -14,6 +14,7 @@ class Exchange {
     public $exchange;
 	public $pair;
 	public $oflags;
+	public $simulatorOnly;
 
     /* STRINGS */
 	public $reference;
@@ -40,12 +41,14 @@ class Exchange {
 	public $ReferenceList;
 
     
-    public function __construct($key = EXCHANGE_API_KEY, $secret = EXCHANGE_API_SECRET, $exchange = TRADE_EXCHANGE, $pair = TRADE_PAIR) {
+    public function __construct($key = EXCHANGE_API_KEY, $secret = EXCHANGE_API_SECRET, $exchange = TRADE_EXCHANGE, $pair = TRADE_PAIR, $simulatorOnly = SIMULATOR_ONLY) {
 		global $debug;
 		$this->debug = $debug;
 		
 		$this->exchange = $exchange;
-        $this->pair     = $pair;
+		$this->pair     = $pair;
+		
+		$this->simulatorOnly = $simulatorOnly;
 
         // set which platform to use (beta or standard)
         $beta = false; 
@@ -57,6 +60,13 @@ class Exchange {
 
 
     public function AddOrder($ledgerid) {
+
+		if($this->simulatorOnly) {
+			$this->reference  = 'SIMULATOR';
+            $this->Success = 'Simulator order posted';
+            return true;
+		}
+
         $this->Ledger = new Ledger();
         $this->Ledger->get($ledgerid);
 
