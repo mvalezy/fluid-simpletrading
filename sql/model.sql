@@ -3,7 +3,7 @@
 -- http://www.phpmyadmin.net
 --
 -- Client :  db578.1and1.fr
--- Généré le :  Lun 25 Septembre 2017 à 01:43
+-- Généré le :  Mar 26 Septembre 2017 à 02:30
 -- Version du serveur :  5.5.57-0+deb7u1-log
 -- Version de PHP :  5.4.45-0+deb7u11
 
@@ -32,7 +32,7 @@ CREATE TABLE IF NOT EXISTS `trade_alert` (
   `exchange` varchar(20) NOT NULL,
   `pair` varchar(10) NOT NULL,
   `ledgerid` int(11) unsigned DEFAULT NULL,
-  `operator` enum('now','more','less','even') NOT NULL DEFAULT 'now',
+  `operator` enum('now','more','less','even','drop') NOT NULL DEFAULT 'now',
   `price` decimal(10,4) NOT NULL,
   `status` enum('new','sent','ignored') NOT NULL DEFAULT 'new',
   `addDate` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -46,7 +46,7 @@ CREATE TABLE IF NOT EXISTS `trade_alert` (
   KEY `operator` (`operator`),
   KEY `price` (`price`),
   KEY `userid` (`userid`)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8 AUTO_INCREMENT=5 ;
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8 AUTO_INCREMENT=2 ;
 
 -- --------------------------------------------------------
 
@@ -64,7 +64,7 @@ CREATE TABLE IF NOT EXISTS `trade_history` (
   PRIMARY KEY (`id`),
   KEY `AddDate` (`addDate`),
   KEY `Price` (`price`)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8 AUTO_INCREMENT=20868 ;
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8 AUTO_INCREMENT=22373 ;
 
 -- --------------------------------------------------------
 
@@ -106,7 +106,7 @@ CREATE TABLE IF NOT EXISTS `trade_ledger` (
   KEY `scalp` (`scalp`),
   KEY `userid` (`userid`),
   KEY `userid_2` (`userid`)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8 AUTO_INCREMENT=7 ;
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8 AUTO_INCREMENT=8 ;
 
 -- --------------------------------------------------------
 

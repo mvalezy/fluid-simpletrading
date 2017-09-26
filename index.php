@@ -172,7 +172,7 @@ else {
     if(!isset($Balance['ZEUR']) || !isset($Balance['XETH'])) {
         $Exchange = new Exchange();
         if($Exchange->balance() === true) {
-            $Balance = $Exchange->balance;
+            $Balance = $Exchange->Balance;
             $Balance['XETHZEUR'] = $Balance['XETH']*$last;
         }
         else {
