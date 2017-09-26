@@ -41,7 +41,7 @@ class Exchange {
 	public $ReferenceList;
 
     
-    public function __construct($key = EXCHANGE_API_KEY, $secret = EXCHANGE_API_SECRET, $exchange = TRADE_EXCHANGE, $pair = TRADE_PAIR, $simulatorOnly = SIMULATOR_ONLY) {
+    public function __construct($key = EXCHANGE_API_KEY, $secret = EXCHANGE_API_SECRET, $exchange = TRADE_EXCHANGE, $pair = TRADE_PAIR, $simulatorOnly = TRADE_SIMULATOR_ONLY) {
 		global $debug;
 		$this->debug = $debug;
 		
@@ -117,6 +117,10 @@ class Exchange {
 
 
 	public function searchOrder($addDate, $volume = 0, $price = 0) {
+
+		if($this->simulatorOnly) {
+            return false;
+		}
 		
 		/*
 		SCENARII
@@ -258,7 +262,7 @@ class Exchange {
 	}
 
 
-	public function OpenOrders() {
+	public function openOrders() {
 		
 		$Response = $this->API->QueryPrivate('OpenOrders', array('trades' => true));
 		if($this->debug)
@@ -284,7 +288,7 @@ class Exchange {
 	}
 
 
-	public function CancelOrder($ledgerid = 0, $reference = 0) {
+	public function cancelOrder($ledgerid = 0, $reference = 0) {
 
 		if($ledgerid) {
 			$this->Ledger = new Ledger();
@@ -318,7 +322,7 @@ class Exchange {
 	}
 
 
-	public function Ticker() {
+	public function ticker() {
 		
 		$Response = $this->API->QueryPublic('Ticker', array('pair' => $this->pair));
 		if($this->debug)
@@ -347,7 +351,7 @@ class Exchange {
 	}
 
 
-	public function Balance() {
+	public function balance() {
 		
 		$Response = $this->API->QueryPrivate('Balance');
 		if($this->debug)

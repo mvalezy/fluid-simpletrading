@@ -108,7 +108,7 @@ function drawChartShort() {
 
     var jsonData = $.ajax({
     url: "chart.ajax.php",
-    data: {limit: 30},
+    data: {unit: '1m'},
     dataType: "json",
     cache: false,
     //method: "POST",
@@ -128,8 +128,11 @@ function drawChartShort() {
             format: 'H:mm',                      
         },
         vAxis: {
-            format: '###,###,###.00 '.FIAT_SYMBOL, //'currency'
+            format: '###,###,###.00 '.TRADE_FIAT_SYMBOL, //'currency'
         },
+        trendlines: {
+            0: {color: '#f7275b', opacity: .4, visibleInLegend: false},
+        }
         
     };
 
@@ -145,10 +148,9 @@ function drawChartMedium() {
 
     var jsonData = $.ajax({
         url: "chart.ajax.php",
-        data: {limit: 720},
+        data: {unit: '30m'},
         dataType: "json",
         cache: true,
-        //method: "POST",
         async: false
     }).responseText;
 
@@ -156,19 +158,18 @@ function drawChartMedium() {
     var data = new google.visualization.DataTable(jsonData);
 
     var options = {
-        title: '12H analysis',
+        title: '24H analysis',
         legend: 'none',
         pointSize: 0,
         hAxis: {
-            format: 'H',                      
+            format: 'H:mm',                      
         },
         vAxis: {
-            format: '###,###,###.00 '.FIAT_SYMBOL, //'currency'
+            format: '###,###,###.00 '.TRADE_FIAT_SYMBOL, //'currency'
         },
-        /*trendlines: {
-            //0: {type: 'exponential', color: '#333', opacity: 1},
-            0: {type: 'exponential', color: '#111', opacity: .3} // linear
-        }*/
+        trendlines: {
+            0: {color: '#f7275b', opacity: .4, visibleInLegend: false},
+        }
     };
 
     var chart = new google.visualization.LineChart(document.getElementById('chart_medium_div'));
@@ -183,10 +184,9 @@ function drawChartLong() {
 
     var jsonData = $.ajax({
         url: "chart.ajax.php",
-        data: {limit: 5760},
+        data: {unit: '1d'},
         dataType: "json",
         cache: true,
-        //method: "POST",
         async: false
     }).responseText;
 
@@ -194,16 +194,19 @@ function drawChartLong() {
     var data = new google.visualization.DataTable(jsonData);
 
     var options = {
-        title: '4D analysis',
+        title: '15D analysis',
         legend: 'none',
         pointSize: 0,
         curveType: 'function',
         hAxis: {
-            format: 'd/m H',                      
+            format: 'MMM dd',
         },
         vAxis: {
-            format: '###,###,###.00 '.FIAT_SYMBOL, //'currency'
+            format: '###,###,###.00 '.TRADE_FIAT_SYMBOL, //'currency'
         },
+        trendlines: {
+            0: {color: '#f7275b', opacity: .4, visibleInLegend: false},
+        }
     };
 
     var chart = new google.visualization.LineChart(document.getElementById('chart_long_div'));

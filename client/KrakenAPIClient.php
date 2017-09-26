@@ -101,11 +101,11 @@ class KrakenAPI
 
         // retry - Fluid modification 2017-10-09
         $i=0;
-        while ($i++ < CURL_EXEC_RETRY_MAX) {
+        while ($i++ < TRADE_CURL_EXEC_RETRY_MAX) {
             $result = curl_exec($this->curl);
             
             if($result===false) {
-                if ($i < CURL_EXEC_RETRY_MAX) { sleep($i+3); }
+                if ($i < TRADE_CURL_EXEC_RETRY_MAX) { sleep($i+3); }
                 else 
                     throw new KrakenAPIException('CURL error: ' . curl_error($this->curl));
             }
@@ -116,8 +116,10 @@ class KrakenAPI
 
         // decode results
         $result = json_decode($result, true);
-        if(!is_array($result))
+        if(!is_array($result)) {
+            var_dump($result);
             throw new KrakenAPIException('JSON decode error');
+        }
 
         return $result;
     }
@@ -164,11 +166,11 @@ class KrakenAPI
         }
         else {
             $i=0;
-            while ($i++ < CURL_EXEC_RETRY_MAX) {
+            while ($i++ < TRADE_CURL_EXEC_RETRY_MAX) {
                 $result = curl_exec($this->curl);
                 
                 if($result===false) {
-                    if ($i < CURL_EXEC_RETRY_MAX) { sleep($i+3); }
+                    if ($i < TRADE_CURL_EXEC_RETRY_MAX) { sleep($i+3); }
                     else 
                         throw new KrakenAPIException('CURL error: ' . curl_error($this->curl));
                 }
@@ -180,8 +182,10 @@ class KrakenAPI
 
         // decode results
         $result = json_decode($result, true);
-        if(!is_array($result))
+        if(!is_array($result)) {
+            var_dump($result);
             throw new KrakenAPIException('JSON decode error');
+        }
 
         return $result;
     }

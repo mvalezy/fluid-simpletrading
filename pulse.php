@@ -40,6 +40,7 @@ if(!$price) {
 
         $History = new History();
         $History->add($price);
+        $lastTick = $History->id;
     }
 }
 
@@ -65,8 +66,7 @@ if(is_array($Alert->List) && count($Alert->List) > 0) {
  */
  $Ledger = new Ledger();
  $Ledger->selectScalp($price);
- //krumo($Ledger);
-
+ 
  if(is_array($Ledger->List) && count($Ledger->List) > 0) {
     foreach($Ledger->List as $id => $detail) {
         echo "Ledger:scalp=sell $detail->volume-$price($id)\n";
@@ -102,7 +102,7 @@ if($Ledger->selectEmptyReference() === true) {
         echo "Ledger:emptyReference= $detail->volume-$detail->price($id)\n";
 
         // 1- ORDER FOUND on Exchange > Update Reference
-        $Exchange = new $Exchange();
+        $Exchange = new Exchange();
         if($Exchange->searchOrder($detail->addDate, $detail->volume, $detail->price) === true) {
             echo "Exchange:foundOrder= $Exchange->reference\n";
              // STORE Reference of Last Order
@@ -113,6 +113,12 @@ if($Ledger->selectEmptyReference() === true) {
         // 2- ORDER NOT FOUND on Exchange > Retry Order
         else {
             // RETRY ORDER
+            if($Exchange->AddOrder($id) === true) {
+                echo "Ledger:createdOrder= $detail->volume-$detail->price($id)\n";
+                // STORE Reference of Last Order
+                $Ledger->reference = $Exchange->reference;
+                $Ledger->updateReference($id);
+            }
         }
     }
 }
@@ -163,8 +169,33 @@ if($Ledger->selectRefresh(3) === true) {
 
 
 
-
-
+/*
+ * AUTOMATIC ALERT
+ */
+if(TRADE_ALERT_AUTOMATIC) {
+    $sent = 0;
+    $History = new History();
+    $alertList = array('15m' => 300, '1h' => 3600, '12h' => 43200, '1d' => 86400);
+    foreach($alertList as $range => $time) {
+        if(!$sent) {
+            $History->getTick(date('Y-m-d H:i:s', time()-$time));
+            $min=$History->price/TRADE_ALERT_THRESHOLD;
+            $max=$History->price*TRADE_ALERT_THRESHOLD;
+            echo "Alert:check= $time - ".round($min,4)."< >".round($max,4)."\n";
+            if($price > $max || $price < $min) {
+                echo "Alert:send= $price\n";
+                $Alert = new Alert();
+                if($Alert->snooze('drop') === true) {
+                    $Alert->add('drop', $price);
+                    $Alert->send($Alert->id, $price, $range);
+                }
+                else
+                    echo "Alert:snooze\n";
+                $sent = 1;
+            }
+        }
+    }
+}
 
 
 // Display Loading time

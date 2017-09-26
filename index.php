@@ -33,10 +33,7 @@ if($debug)
 if(!$purge && isset($_COOKIE["SimpleTrader"]) && $_COOKIE["SimpleTrader"]) {
 
     $cookie     = json_decode($_COOKIE["SimpleTrader"], true);
-    $Last       = $cookie['Last'];
     $Balance    = $cookie['Balance'];
-    $OpenOrders = $cookie['openOrders'];
-
     $cache = " - Cached: ";
 
 }
@@ -130,7 +127,7 @@ else {
         if($cancel != 'SIMULATOR') {
             $Exchange = new Exchange();
 
-            if($Exchange->CancelOrder(0, $cancel) === true) {
+            if($Exchange->cancelOrder(0, $cancel) === true) {
                 $message[] = new ErrorMessage('success', $Exchange->Success);
                 $Ledger = new Ledger();
                 $Ledger->cancelByReference($cancel);
@@ -151,52 +148,46 @@ else {
     * DISPLAY
     */
 
-    // Query Last Exhange PAIR price
-    if(!isset($Last)) {
-        $Exchange = new Exchange();
-        if($Exchange->Ticker() === true) {
-            $Last = $Exchange->price;
+    if($purge) {
+        // Query Last Exhange PAIR price
+        if(!isset($last)) {
+            $Exchange = new Exchange();
+            if($Exchange->ticker() === true) {
+                $last = $Exchange->price;
+            }
+            else {
+                $last = 0;
+                $message[] = new ErrorMessage('warning', $Exchange->Error, 'Ticker');
+            }
         }
-        else {
-            $Last = 0;
-            $message[] = new ErrorMessage('warning', $Exchange->Error, 'Ticker');
-        }
+    }
+    else {
+        // Query Last Exhange PAIR price from History
+        $History = new History();
+        $last = $History->getLast();
+    }
 
-        $setcookie = 1;
-    } else $cache .= " cookie ";
 
     // Query Exchange Balance
     if(!isset($Balance['ZEUR']) || !isset($Balance['XETH'])) {
         $Exchange = new Exchange();
-        if($Exchange->Balance() === true) {
-            $Balance = $Exchange->Balance;
+        if($Exchange->balance() === true) {
+            $Balance = $Exchange->balance;
+            $Balance['XETHZEUR'] = $Balance['XETH']*$last;
         }
         else {
             $Balance['ZEUR'] = 0;
             $Balance['XETH'] = 0;
+            $Balance['XETHZEUR'] = 0;
             $message[] = new ErrorMessage('warning', $Exchange->Error, 'Balance');
         }
 
         $setcookie = 1;
     } else $cache .= " balance ";
 
-    // Query Exchange Orders
-    if(!isset($OpenOrders)) {
-        $Exchange = new Exchange();
-        if($Exchange->OpenOrders() === true) {
-            $OpenOrders = $Exchange->OpenOrders;
-        }
-        else {
-            $OpenOrders['open'] = array();
-            $message[] = new ErrorMessage('warning', $Exchange->Error, 'OpenOrders');
-        }
-
-        $setcookie = 1;
-    } else $cache .= " orders ";
-
 
     // Buy or Sell ?
-    $ETHValue = $Balance['XETH'] * $Last;
+    $ETHValue = $Balance['XETH'] * $last;
     if($Balance['ZEUR'] >= $ETHValue) {
             $orderDefault = 'buy';
             $cssEUR = 'info';
@@ -212,14 +203,10 @@ else {
     // Set Cookie
     if($setcookie) {
         $cookie = array();
-        $cookie['Balance']      = $Balance;
-        $cookie['Last']         = $Last;
-        $cookie['openOrders']   = $OpenOrders;
+        $cookie['Balance']         = $Balance;
 
         setcookie("SimpleTrader", json_encode($cookie), time()+3600);
     }
-
-
 
 
     // Active Alerts
@@ -304,7 +291,7 @@ else {
                                 <h3>Balance</h3>
 
                                 <div class="col-xs-3 col-sm-6 col-lg-6">
-                                    <input id="UpdateBalanceZEUR" class="btn btn-<?php echo $cssEUR; ?>" type="button" value="<?php echo number_format($Balance['ZEUR'], 2, '.', ' '); ?> EUR">
+                                    <input id="UpdateBalanceZEUR" class="btn btn-<?php echo $cssEUR; ?>" type="button" value="<?php echo money_format('%i', $Balance['ZEUR']); ?>">
                                     <input id="BalanceZEUR" type="hidden" value="<?php echo $Balance['ZEUR']; ?>">
                                 </div>
                                 <div class="col-xs-3 col-sm-6 col-lg-6">
@@ -312,10 +299,13 @@ else {
                                     <input id="BalanceXETH" type="hidden" value="<?php echo $Balance['XETH']; ?>">
                                 </div>
                             </div>
-
+                            <div class="col-xs-3 col-sm-6 col-lg-6">
+                                <h3>Value</h3>
+                                <div class="col-xs-12 col-sm-12 col-lg-12"><?php echo money_format('%i', $Balance['XETHZEUR']); ?></div>
+                            </div>
                             <div class="col-xs-3 col-sm-6 col-lg-6">
                                 <h3>Last</h3>
-                                <div class="col-xs-12 col-sm-12 col-lg-12"><?php echo round($Last, 2); ?> EUR</div>
+                                <div class="col-xs-12 col-sm-12 col-lg-12"><?php echo money_format('%i', $last); ?></div>
                             </div>
 
                         </div>
@@ -323,7 +313,7 @@ else {
                         <div class="row">
 
                             <div class="col-sm-12 col-lg-12">
-                                <h3>Pending Orders</h3>
+                                <h3>Ledger</h3>
                                 <div class="row">
 
                     <?php
@@ -419,7 +409,7 @@ else {
                                 <input type="text" class="form-control" id="volume" name="volume" <?php
 
                                 if($orderDefault == 'buy') {
-                                    echo 'value="'.round($Balance['ZEUR']/$Last,5).'"';
+                                    echo 'value="'.round($Balance['ZEUR']/$last,5).'"';
                                 }
                                 else {
                                     echo 'value="'.round($Balance['XETH'],6).'"';
@@ -437,7 +427,7 @@ else {
                             <label for="price" class="control-label col-md-4">Price</label>
                             <div class="col-md-8">
                                 <div class="input-group">
-                                <input type="text" class="form-control" id="price" name="price" value="<?php echo $Last; ?>">
+                                <input type="text" class="form-control" id="price" name="price" value="<?php echo $last; ?>">
                                 <div class="input-group-addon">EUR</div>
                                 </div>
                             </div>
@@ -455,7 +445,7 @@ else {
                                     echo 'value="'.round($Balance['ZEUR'],4).'"';
                                 }
                                 else {
-                                    echo 'value="'.round($Balance['XETH']*$Last,2).'"';
+                                    echo 'value="'.round($Balance['XETH']*$last,2).'"';
                                 }
 
                                 ?>>
@@ -568,7 +558,7 @@ if(is_array($Alert->List) && count($Alert->List) > 0) {
 
                             <div class="col-md-6">
                                 <div class="input-group">
-                                    <input type="text" class="form-control" id="priceAlert" name="priceAlert" value="<?php echo $Last; ?>">
+                                    <input type="text" class="form-control" id="priceAlert" name="priceAlert" value="<?php echo $last; ?>">
                                     <div class="input-group-addon">EUR</div>
                                 </div>
                             </div>

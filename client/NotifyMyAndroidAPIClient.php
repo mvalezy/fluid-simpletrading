@@ -48,11 +48,11 @@ class NotifyMyAndroid {
         ));
 
         $i=0;
-        while ($i++ < CURL_EXEC_RETRY_MAX) {
+        while ($i++ < TRADE_CURL_EXEC_RETRY_MAX) {
             $response = curl_exec($curl);
             
             if($response===false) {
-                if ($i < CURL_EXEC_RETRY_MAX) { sleep($i+3); }
+                if ($i < TRADE_CURL_EXEC_RETRY_MAX) { sleep($i+3); }
                 else
                     die(curl_error($curl));
             }
@@ -66,7 +66,7 @@ class NotifyMyAndroid {
         $xml    = simplexml_load_string($response);
         $json   = json_encode($xml);
         $result = json_decode($json,TRUE);
-  
+ 
         if(is_array($result)) {
             if(isset($result['success']) && isset($result['success']['@attributes'])) {
                 $success = $result['success']['@attributes'];

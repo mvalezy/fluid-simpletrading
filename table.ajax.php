@@ -57,67 +57,68 @@ if($debug) {
 
 if(isset($Ledger->List) && is_array($Ledger->List) && count($Ledger->List) > 0) {
 
-    $i=0;    
+    $i=0; $googleTableCols[$i] = new stdClass();
     $googleTableCols[$i]->id     = 'id';
     $googleTableCols[$i]->label  = 'id';
     $googleTableCols[$i]->type   = 'number';
 
-    $i++;    
+    $i++; $googleTableCols[$i] = new stdClass();    
     $googleTableCols[$i]->id     = 'date';
     $googleTableCols[$i]->label  = 'Date';
     $googleTableCols[$i]->type   = 'datetime';
 
-    $i++;
+    $i++; $googleTableCols[$i] = new stdClass();
     $googleTableCols[$i]->id     = 'status';
     $googleTableCols[$i]->label  = 'Status';
     $googleTableCols[$i]->type   = 'string';
 
-    $i++;
+    $i++; $googleTableCols[$i] = new stdClass();
     $googleTableCols[$i]->id     = 'reference';
     $googleTableCols[$i]->label  = 'Reference';
     $googleTableCols[$i]->type   = 'string';
 
-    $i++;
+    $i++; $googleTableCols[$i] = new stdClass();
     $googleTableCols[$i]->id     = 'action';
     $googleTableCols[$i]->label  = 'Action';
     $googleTableCols[$i]->type   = 'string';
 
-    $i++;
+    $i++; $googleTableCols[$i] = new stdClass();
     $googleTableCols[$i]->id     = 'volume';
     $googleTableCols[$i]->label  = 'Vol';
     $googleTableCols[$i]->type   = 'number';
 
-    $i++;
+    $i++; $googleTableCols[$i] = new stdClass();
     $googleTableCols[$i]->id     = 'price';
     $googleTableCols[$i]->label  = 'Price';
     $googleTableCols[$i]->type   = 'number';
 
-    $i++;
+    $i++; $googleTableCols[$i] = new stdClass();
     $googleTableCols[$i]->id     = 'total';
     $googleTableCols[$i]->label  = 'Total';
     $googleTableCols[$i]->type   = 'number';
 
-    $i++;
+    $i++; $googleTableCols[$i] = new stdClass();
     $googleTableCols[$i]->id     = 'gain';
     $googleTableCols[$i]->label  = 'Gain';
     $googleTableCols[$i]->type   = 'string';
 
-    $i++;
+    $i++; $googleTableCols[$i] = new stdClass();
     $googleTableCols[$i]->id     = 'info';
     $googleTableCols[$i]->label  = 'Info';
     $googleTableCols[$i]->type   = 'string';
 
     $i=0;
     $prev = new stdClass();
-    $prev->cost;
+    $prev->cost = 0;
+    $prev->fee = 0;
     foreach($Ledger->List as $data) {
 
         // ID
-        $j=0;
+        $j=0; $googleTableRows[$i]->c[$j] = new stdClass();
         $googleTableRows[$i]->c[$j]->v = $data->id;
 
         // Date
-        $j++;
+        $j++; $googleTableRows[$i]->c[$j] = new stdClass();
         if($data->status == 'closed') {
             $googleTableRows[$i]->c[$j]->v = "Date(".date('Y,n,d,H,i,s', strtotime($data->closeDate)).")";
             $googleTableRows[$i]->c[$j]->f = date('d/m H:i:s', strtotime($data->closeDate));
@@ -129,69 +130,73 @@ if(isset($Ledger->List) && is_array($Ledger->List) && count($Ledger->List) > 0) 
         }
 
         // Status
-        $j++; $googleTableRows[$i]->c[$j]->v = $data->status;
+        $j++; $googleTableRows[$i]->c[$j] = new stdClass(); $googleTableRows[$i]->c[$j]->v = $data->status;
 
         // Reference
-        $j++; $googleTableRows[$i]->c[$j]->v = $data->reference;
+        $j++; $googleTableRows[$i]->c[$j] = new stdClass(); $googleTableRows[$i]->c[$j]->v = $data->reference;
 
         // Action
-        $j++; $googleTableRows[$i]->c[$j]->v = $data->orderAction;
+        $j++; $googleTableRows[$i]->c[$j] = new stdClass(); $googleTableRows[$i]->c[$j]->v = $data->orderAction;
 
         // Prices
         if($data->status == 'closed') {
 
             // Volume
-            $j++; $googleTableRows[$i]->c[$j]->v = $data->volume_executed;
+            $j++; $googleTableRows[$i]->c[$j] = new stdClass(); $googleTableRows[$i]->c[$j]->v = $data->volume_executed;
             
             // Price
-            $j++;
+            $j++; $googleTableRows[$i]->c[$j] = new stdClass();
             $googleTableRows[$i]->c[$j]->v = $data->price_executed;
             $googleTableRows[$i]->c[$j]->f = money_format('%i', $data->price_executed);
 
             // Total
-            $j++;
+            $j++; $googleTableRows[$i]->c[$j] = new stdClass();
             $googleTableRows[$i]->c[$j]->v = $data->cost;
             $googleTableRows[$i]->c[$j]->f = money_format('%i', $data->cost);
 
             // Gain
             if($prev->cost && $data->orderAction == 'sell' && $prev->action == 'buy') {
-                $j++;
-                $gain = $data->cost - $prev->cost;
+                $j++; $googleTableRows[$i]->c[$j] = new stdClass();
+                $gain = $data->cost - $prev->cost - $data->fee - $prev->fee;
                 $googleTableRows[$i]->c[$j]->v = $gain;
                 $googleTableRows[$i]->c[$j]->f = money_format('%i', $gain);
                 $prev->cost = 0;
+                $prev->fee  = 0;
             }
             elseif($data->orderAction == 'buy') {
-                $j++; $googleTableRows[$i]->c[$j]->v = '';
+                $j++; $googleTableRows[$i]->c[$j] = new stdClass(); $googleTableRows[$i]->c[$j]->v = '';
                 $prev->cost += $data->cost; 
+                $prev->fee  += $data->fee;
             }
         }
         else {
             // Volume
-            $j++; $googleTableRows[$i]->c[$j]->v = $data->volume;
+            $j++; $googleTableRows[$i]->c[$j] = new stdClass(); $googleTableRows[$i]->c[$j]->v = $data->volume;
             
             // Price
-            $j++;
+            $j++; $googleTableRows[$i]->c[$j] = new stdClass();
             $googleTableRows[$i]->c[$j]->v = $data->price;
             $googleTableRows[$i]->c[$j]->f = money_format('%i', $data->price);
 
             // Total
-            $j++;
+            $j++; $googleTableRows[$i]->c[$j] = new stdClass();
             $googleTableRows[$i]->c[$j]->v = $data->total;
             $googleTableRows[$i]->c[$j]->f = money_format('%i', $data->total);
 
             // Gain / Cancel
             if($data->status == 'open') {
-                $j++;
+                $j++; $googleTableRows[$i]->c[$j] = new stdClass();
                 $googleTableRows[$i]->c[$j]->v = "<a href='index.php?cancel=$data->reference&id=$data->id' class='btn btn-danger btn-xs' role='button'><span class='glyphicon glyphicon-remove'></span> Cancel</a>";
             }
-            else
-                $j++; $googleTableRows[$i]->c[$j]->v = '';
+            else {
+                $j++; $googleTableRows[$i]->c[$j] = new stdClass();
+                $googleTableRows[$i]->c[$j]->v = '';
+            }
         }
 
         // Info
         if($data->status != 'canceled') {
-            $j++;
+            $j++; $googleTableRows[$i]->c[$j] = new stdClass();
             $googleTableRows[$i]->c[$j]->v = "";
             if($data->stopLoss)
                 $googleTableRows[$i]->c[$j]->v .= "stop-loss:".money_format('%i', $data->stopLoss);

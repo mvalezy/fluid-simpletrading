@@ -22,16 +22,19 @@ class Alert {
     public $addDate;
     public $closeDate;
 
+    private $snooze;
+
     /* OBJECTS */
     public $List;
     public $API;
 
     
-    public function __construct($ledgerid = 0, $exchange = TRADE_EXCHANGE, $pair = TRADE_PAIR) {
+    public function __construct($ledgerid = 0, $exchange = TRADE_EXCHANGE, $pair = TRADE_PAIR, $snooze = TRADE_ALERT_SNOOZE) {
         global $db;
         $this->db = $db;
 
         $this->priority = 0;
+        $this->snooze = $snooze;
 
         $this->exchange = $exchange;
         $this->pair = $pair;
@@ -40,7 +43,7 @@ class Alert {
         
     }
 
-    public function send($id, $price = 0) {
+    public function send($id, $price = 0, $comment = '') {
         
         if(isset($this->List[$id])) {
             $this->id           = $id;
@@ -55,7 +58,7 @@ class Alert {
         $this->price = round($this->price, 1);
 
         $this->API              = new Notify();
-        $this->API->url         = WEBSITE_URL;
+        $this->API->url         = TRADE_WEBSITE_URL;
         $this->API->priority    = $this->priority;      
 
         switch($this->operator) {
@@ -80,6 +83,11 @@ class Alert {
                 $this->API->description = "[$this->pair] Price ".money_format('%i', $this->price);
                 break;
 
+            case 'drop':
+                $threshold = round((TRADE_ALERT_THRESHOLD-1)*100);
+                $this->API->event = $this->API->application = "Price change thershold $threshold% vs last $comment";
+                $this->API->description = "[$this->pair] Price ".money_format('%i', $this->price);
+                break;
         }
 
         if(@$this->ledgerid) {
@@ -112,6 +120,7 @@ class Alert {
                 mysqlerr($this->db, $query);
             }
         }
+        else echo "error API POST";
     }
 
 
@@ -183,6 +192,21 @@ class Alert {
             $this->ledgerid = $row->ledgerid;
         }
     }
+
+    public function snooze($operator) {
+
+        $date = time()-$this->snooze;
+        
+        $query = "SELECT id FROM trade_alert WHERE operator = '".$this->db->real_escape_string($operator)."' AND status = 'sent' AND addDate > '".$this->db->real_escape_string($date)."' ORDER BY addDate ASC LIMIT 1;";
+        
+        $sql = $this->db->query($query);
+        mysqlerr($this->db, $query);
+
+        if(isset($sql->num_rows) && $sql->num_rows > 0) 
+            return false;
+        
+        return true;
+    }  
 
 }
 
