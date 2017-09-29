@@ -26,6 +26,10 @@ else $price = 0;
  * Recommended cycle : 1 min
  */
 
+if(TRADE_SIMULATOR_ONLY) {
+    $History = new History();
+    $price = $History->getLast();
+}
 
 /*
  * TICKER
@@ -182,15 +186,23 @@ if(TRADE_ALERT_AUTOMATIC) {
             $min=$History->price/TRADE_ALERT_THRESHOLD;
             $max=$History->price*TRADE_ALERT_THRESHOLD;
             echo "Alert:check= $time - ".round($min,4)."< >".round($max,4)."\n";
-            if($price > $max || $price < $min) {
-                echo "Alert:send= $price\n";
+
+            $priceAlert = 0;
+            if($price > $max)
+                $priceAlert = $max;
+            if($price < $min)
+                $priceAlert = $min;
+
+            if($priceAlert) {
+                echo "Alert:send= $price vs $priceAlert\n";
                 $Alert = new Alert();
                 if($Alert->snooze('drop') === true) {
-                    $Alert->add('drop', $price);
+                    $Alert->add('drop', $priceAlert);
                     $Alert->send($Alert->id, $price, $range);
                 }
                 else
                     echo "Alert:snooze\n";
+                    
                 $sent = 1;
             }
         }

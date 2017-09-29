@@ -12,6 +12,7 @@ class Alert {
 
     /* DB STRINGS */
     public $id;
+    public $userid;
     public $exchange;
     public $pair;
     public $ledgerid;
@@ -22,6 +23,10 @@ class Alert {
     public $addDate;
     public $closeDate;
 
+    public $websitename;
+
+
+    private $threshold;
     private $snooze;
 
     /* OBJECTS */
@@ -29,15 +34,18 @@ class Alert {
     public $API;
 
     
-    public function __construct($ledgerid = 0, $exchange = TRADE_EXCHANGE, $pair = TRADE_PAIR, $snooze = TRADE_ALERT_SNOOZE) {
+    public function __construct($ledgerid = 0, $userid = TRADE_USER, $exchange = TRADE_EXCHANGE, $pair = TRADE_PAIR, $threshold = TRADE_ALERT_THRESHOLD, $snooze = TRADE_ALERT_SNOOZE, $websitename = TRADE_WEBSITE_NAME) {
         global $db;
         $this->db = $db;
 
         $this->priority = 0;
         $this->snooze = $snooze;
+        $this->threshold = $threshold;
 
+        $this->userid   = $userid;
         $this->exchange = $exchange;
         $this->pair = $pair;
+        $this->websitename = $websitename;
 
         $this->ledgerid = $ledgerid;
         
@@ -84,7 +92,7 @@ class Alert {
                 break;
 
             case 'drop':
-                $threshold = round((TRADE_ALERT_THRESHOLD-1)*100);
+                $threshold = round(($this->threshold-1)*100);
                 $this->API->event = $this->API->application = "Price change thershold $threshold% vs last $comment";
                 $this->API->description = "[$this->pair] Price ".money_format('%i', $this->price);
                 break;
@@ -102,8 +110,19 @@ class Alert {
             $this->API->description .= ". Current price ".money_format('%i', $price);
         }
   
+        // Send Email notification
+        $User = new User();
+        if($User->get($this->userid)) {
+            // Email Header
+            $header = "From: \"$this->websitename\"<noreply@fluid-element.com>\r\n";
+            $header .= "Reply-to: \"$this->websitename\"<noreply@fluid-element.com>\r\n";
+            $header .= "MIME-Version: 1.0\r\n";
+            $header .= "Content-type: text/html; charset=UTF-8\r\n";
+            mail($User->email, $this->API->event, $this->API->description, $header);
+        }
+
   
-  
+        // Send Mobile notification
         if($this->API->post()) {
   
             // UPDATE current Alert
@@ -195,9 +214,9 @@ class Alert {
 
     public function snooze($operator) {
 
-        $date = time()-$this->snooze;
+        $date = time() - $this->snooze;
         
-        $query = "SELECT id FROM trade_alert WHERE operator = '".$this->db->real_escape_string($operator)."' AND status = 'sent' AND addDate > '".$this->db->real_escape_string($date)."' ORDER BY addDate ASC LIMIT 1;";
+        $query = "SELECT id FROM trade_alert WHERE operator = '".$this->db->real_escape_string($operator)."' AND status = 'sent' AND addDate > '".$this->db->real_escape_string(date('Y-m-d H:m:i', $date))."' ORDER BY addDate ASC LIMIT 1;";
         
         $sql = $this->db->query($query);
         mysqlerr($this->db, $query);

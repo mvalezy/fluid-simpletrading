@@ -3,7 +3,7 @@
 -- http://www.phpmyadmin.net
 --
 -- Client :  db578.1and1.fr
--- Généré le :  Mar 26 Septembre 2017 à 02:30
+-- Généré le :  Sam 30 Septembre 2017 à 00:25
 -- Version du serveur :  5.5.57-0+deb7u1-log
 -- Version de PHP :  5.4.45-0+deb7u11
 
@@ -26,6 +26,7 @@ SET time_zone = "+00:00";
 -- Structure de la table `trade_alert`
 --
 
+DROP TABLE IF EXISTS `trade_alert`;
 CREATE TABLE IF NOT EXISTS `trade_alert` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `userid` int(11) unsigned NOT NULL DEFAULT '1',
@@ -54,6 +55,7 @@ CREATE TABLE IF NOT EXISTS `trade_alert` (
 -- Structure de la table `trade_history`
 --
 
+DROP TABLE IF EXISTS `trade_history`;
 CREATE TABLE IF NOT EXISTS `trade_history` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `userid` int(11) unsigned NOT NULL DEFAULT '1',
@@ -64,7 +66,7 @@ CREATE TABLE IF NOT EXISTS `trade_history` (
   PRIMARY KEY (`id`),
   KEY `AddDate` (`addDate`),
   KEY `Price` (`price`)
-) ENGINE=MyISAM  DEFAULT CHARSET=utf8 AUTO_INCREMENT=22373 ;
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8 AUTO_INCREMENT=4862 ;
 
 -- --------------------------------------------------------
 
@@ -72,6 +74,7 @@ CREATE TABLE IF NOT EXISTS `trade_history` (
 -- Structure de la table `trade_ledger`
 --
 
+DROP TABLE IF EXISTS `trade_ledger`;
 CREATE TABLE IF NOT EXISTS `trade_ledger` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `userid` int(11) unsigned NOT NULL DEFAULT '1',
@@ -114,6 +117,7 @@ CREATE TABLE IF NOT EXISTS `trade_ledger` (
 -- Structure de la table `trade_user`
 --
 
+DROP TABLE IF EXISTS `trade_user`;
 CREATE TABLE IF NOT EXISTS `trade_user` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `email` varchar(200) NOT NULL,

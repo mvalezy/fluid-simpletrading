@@ -119,14 +119,13 @@ if(isset($Ledger->List) && is_array($Ledger->List) && count($Ledger->List) > 0) 
 
         // Date
         $j++; $googleTableRows[$i]->c[$j] = new stdClass();
-        if($data->status == 'closed') {
-            $googleTableRows[$i]->c[$j]->v = "Date(".date('Y,n,d,H,i,s', strtotime($data->closeDate)).")";
-            $googleTableRows[$i]->c[$j]->f = date('d/m H:i:s', strtotime($data->closeDate));
-            
-        }
-        else {
+        if($data->status == 'open') {
             $googleTableRows[$i]->c[$j]->v = "Date(".date('Y,n,d,H,i,s', strtotime($data->addDate)).")";
             $googleTableRows[$i]->c[$j]->f = date('d/m H:i:s', strtotime($data->addDate));
+        }
+        else {
+            $googleTableRows[$i]->c[$j]->v = "Date(".date('Y,n,d,H,i,s', strtotime($data->closeDate)).")";
+            $googleTableRows[$i]->c[$j]->f = date('d/m H:i:s', strtotime($data->closeDate));
         }
 
         // Status

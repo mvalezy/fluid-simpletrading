@@ -226,7 +226,7 @@ ob_flush();
         <meta http-equiv="Content-type" content="text/html; charset=utf-8">
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
-        <title>Simple Trader Beta</title>
+        <title><?php echo TRADE_WEBSITE_NAME; ?></title>
 
         <!-- Jquery -->
         <script src="https://code.jquery.com/jquery-3.2.1.min.js" integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4=" crossorigin="anonymous"></script>
@@ -260,7 +260,7 @@ ob_flush();
             <div class="panel panel-primary" >
 
                 <div class="panel-heading">
-                    <div class="panel-title"><a href="index.php">Simple Trader</a></div>
+                    <div class="panel-title"><a href="index.php"><?php echo TRADE_WEBSITE_NAME; ?></a></div>
                     <div style="float:right; font-size: 80%; position: relative; top:-18px"><a href="index.php?purge=1" class="btn btn-default btn-xs" role="button"><span class="glyphicon glyphicon-flash"></span> Clear cache</a></div>
                 </div>
 

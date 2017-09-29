@@ -10,6 +10,7 @@ require_once('config/nma.api.config.php');
 
 // Class
 require_once('class/error.class.php'); 
+require_once('class/user.class.php');
 require_once('class/history.class.php'); 
 require_once('class/ledger.class.php'); 
 require_once('class/alert.class.php');
