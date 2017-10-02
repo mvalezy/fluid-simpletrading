@@ -63,7 +63,7 @@ class Logger {
     }
 
 	
-    public function log($level, $message, $script = '') {
+    public function log($level, $message, $script = '', $css = 'info') {
 
         if(!is_resource($this->fp))
             $this->open();
@@ -73,15 +73,12 @@ class Logger {
         fwrite($this->fp, date('Y-m-d H:i:s') . " - $level - $this->message");
         
         if($this->display) {
-            return $this->display();
+            return $this->display($css);
         }
     }
 
 	
 	public function display($css = 'info', $message = '', $script = '') {
-
-        if($css != $this->css)
-            $this->css = $css;
 
         if($message)
             $this->getMessage($message, $script);
@@ -93,7 +90,7 @@ class Logger {
             else {
                 $obj = new stdClass();
                 $obj->message = $this->message;
-                $obj->css = $this->css;
+                $obj->css = $css;
                 return $obj;
             }
         }
@@ -101,7 +98,7 @@ class Logger {
 
     public function archive() {
         if(file_exists($this->file)) {
-            if(filesize($this->file) > 16777216) { // 2mo
+            if(filesize($this->file) > 41943040) { // 5mo
                 $this->open();
                 $this->log('WARNING', 'archive log file', 'maintenance');
                 $this->close();
