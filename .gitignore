@@ -4,3 +4,4 @@ config/kraken.api.config.php
 config/config.inc.php
 config/.htpasswd
 config/.remote-sync.json
+.htaccess
