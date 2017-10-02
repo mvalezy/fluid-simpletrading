@@ -17,6 +17,9 @@ else $id = 0;
 if(isset($_GET['cancel']) && $_GET['cancel'] != '') { $cancel = $_GET['cancel']; }
 else $cancel = '';
 
+
+$Logger = new Logger('trader', 1, 'html');
+
 if(isset($_GET['purge']) && $_GET['purge'] == 1) {
     setcookie("SimpleTrader", '', 1);
     $purge = 1;
@@ -57,10 +60,10 @@ if(isset($_POST['addOrder']) && $_POST['addOrder']) {
     $Ledger->getVars($_POST);
 
     if(!isset($Ledger->volume) || !$Ledger->volume)
-        $message[] = new ErrorMessage('danger', 'Volume is not set');
+        $message[] = $Logger->display('danger', 'Volume is not set');
 
     if(!isset($Ledger->price) || !$Ledger->price) {
-        $message[] = new ErrorMessage('danger', 'Price is not set');
+        $message[] = $Logger->display('danger', 'Price is not set');
 
     }
 
@@ -82,13 +85,13 @@ if(isset($_POST['addOrder']) && $_POST['addOrder']) {
             $Ledger->reference = $Exchange->reference;
             $Ledger->updateReference($Ledger->id);
 
-            $message[] = new ErrorMessage('success', $Exchange->Success);
+            $message[] = $Logger->display('success', $Exchange->Success);
 
             // Delete Cookie
             setcookie("SimpleTrader", '', 1);
         }
         else {
-            $message[] = new ErrorMessage('danger', $Exchange->Error);
+            $message[] = $Logger->display('danger', $Exchange->Error);
         }
 
         if($debug)
@@ -105,13 +108,13 @@ elseif(isset($_POST['addAlert']) && $_POST['addAlert'] == 1) {
 
 
     if(!isset($_POST['priceAlert']) || !$_POST['priceAlert'])
-        $message[] = new ErrorMessage('danger', 'Price is not set');
+        $message[] = $Logger->display('danger', 'Price is not set');
 
     $Alert = new Alert();
 
     $Alert->add($_POST['operator'], $_POST['priceAlert']);
 
-    $message[] = new ErrorMessage('success', "New alert at ".$_POST['operator']." ".$_POST['priceAlert']." posted.");
+    $message[] = $Logger->display('success', "New alert at ".$_POST['operator']." ".$_POST['priceAlert']." posted.");
 
 } // END ADD ALERT
 
@@ -128,13 +131,13 @@ else {
             $Exchange = new Exchange();
 
             if($Exchange->cancelOrder(0, $cancel) === true) {
-                $message[] = new ErrorMessage('success', $Exchange->Success);
+                $message[] = $Logger->display('success', $Exchange->Success);
                 $Ledger = new Ledger();
                 $Ledger->cancelByReference($cancel);
                 unset($OpenOrders); // Clear List Array
             }
             else {
-                $message[] = new ErrorMessage('danger', $Exchange->Error);
+                $message[] = $Logger->display('danger', $Exchange->Error);
             }
         }
         else {
@@ -157,7 +160,7 @@ else {
             }
             else {
                 $last = 0;
-                $message[] = new ErrorMessage('warning', $Exchange->Error, 'Ticker');
+                $message[] = $Logger->display('warning', $Exchange->Error, 'Ticker');
             }
         }
     }
@@ -179,7 +182,7 @@ else {
             $Balance['ZEUR'] = 0;
             $Balance['XETH'] = 0;
             $Balance['XETHZEUR'] = 0;
-            $message[] = new ErrorMessage('warning', $Exchange->Error, 'Balance');
+            $message[] = $Logger->display('warning', $Exchange->Error, 'Balance');
         }
 
         $setcookie = 1;
@@ -269,7 +272,7 @@ ob_flush();
 <?php
 if(count($message) > 0) {
     foreach($message as $key => $resp) { ?>
-                    <div class="alert alert-<?php echo $resp->type; ?> col-sm-12"><b><?php echo $resp->message; ?></b></div>
+                    <div class="alert alert-<?php echo $resp->css; ?> col-sm-12"><b><?php echo $resp->message; ?></b></div>
 <?php
     }
 }
@@ -508,7 +511,7 @@ else {
                     <div class="col-sm-12 col-lg-12">
 
                         <div  class="col-sm-12 col-md-8 col-lg-2">
-                                <?php
+<?php
 if(is_array($Alert->List) && count($Alert->List) > 0) {
     echo "<ul>\n";
     foreach($Alert->List as $alertDetail) {
@@ -529,8 +532,8 @@ if(is_array($Alert->List) && count($Alert->List) > 0) {
     }
     echo "</ul>\n";
 
-}
-                                ?>
+} else echo "empty";
+?>
                         </div>
 
                         <div class="form-group">

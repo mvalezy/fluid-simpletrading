@@ -19,7 +19,9 @@ else $price = 0;
  * CRON CONFIG
  * 30 seconds
  * * * * * * /usr/bin/php6 /kunden/homepages/23/d202161969/htdocs/demo/trade/pulse.php > /kunden/homepages/23/d202161969/htdocs/demo/trade/log/cron.log 2>&1
-/*
+ */
+
+$Logger = new Logger('pulse', 1);
 
 /*
  * PULSE
@@ -29,6 +31,7 @@ else $price = 0;
 if(TRADE_SIMULATOR_ONLY) {
     $History = new History();
     $price = $History->getLast();
+    echo $Logger->log('INFO', "Fixed price at $price", 'Simulator');
 }
 
 /*
@@ -40,7 +43,7 @@ if(!$price) {
     if($Exchange->Ticker() === true) {
         $price = $Exchange->price;
 
-        echo "Ticker:".TRADE_PAIR."=$price\n";
+        echo $Logger->log('INFO', TRADE_PAIR."=$price", 'Ticker');
 
         $History = new History();
         $History->add($price);
@@ -58,7 +61,7 @@ $Alert->select($price);
 
 if(is_array($Alert->List) && count($Alert->List) > 0) {
     foreach($Alert->List as $id => $detail) {
-        echo "Alert:send=$detail->price($id)\n";
+        echo $Logger->log('INFO', "send=$detail->price($id)", 'Alert');
         
         $Alert->send($id, $price);
     }
@@ -73,7 +76,7 @@ if(is_array($Alert->List) && count($Alert->List) > 0) {
  
  if(is_array($Ledger->List) && count($Ledger->List) > 0) {
     foreach($Ledger->List as $id => $detail) {
-        echo "Ledger:scalp=sell $detail->volume-$price($id)\n";
+        echo $Logger->log('WARNING', "scalp=sell $detail->volume-$price($id)", 'Ledger');
 
         $Ledger->closeScalp($id);
 
@@ -103,12 +106,12 @@ if(is_array($Alert->List) && count($Alert->List) > 0) {
 $Ledger = new Ledger();
 if($Ledger->selectEmptyReference() === true) {
     foreach($Ledger->List as $id => $detail) {
-        echo "Ledger:emptyReference= $detail->volume-$detail->price($id)\n";
+        echo $Logger->log('WARNING', "emptyReference= $detail->volume-$detail->price($id)", 'Ledger');
 
         // 1- ORDER FOUND on Exchange > Update Reference
         $Exchange = new Exchange();
         if($Exchange->searchOrder($detail->addDate, $detail->volume, $detail->price) === true) {
-            echo "Exchange:foundOrder= $Exchange->reference\n";
+            echo $Logger->log('WARNING', "foundOrder= $Exchange->reference", 'Exchange');
              // STORE Reference of Last Order
              $Ledger->reference = $Exchange->reference;
              $Ledger->updateReference($id);
@@ -118,7 +121,7 @@ if($Ledger->selectEmptyReference() === true) {
         else {
             // RETRY ORDER
             if($Exchange->AddOrder($id) === true) {
-                echo "Ledger:createdOrder= $detail->volume-$detail->price($id)\n";
+                echo $Logger->log('WARNING', "createdOrder= $detail->volume-$detail->price($id)", 'Ledger');
                 // STORE Reference of Last Order
                 $Ledger->reference = $Exchange->reference;
                 $Ledger->updateReference($id);
@@ -135,7 +138,7 @@ $Ledger = new Ledger();
 if($Ledger->selectRefresh(3) === true) {
     $ReferenceList = array();
     foreach($Ledger->List as $id => $detail) {
-        echo "Ledger:openOrders= $detail->reference($id)\n";
+        echo $Logger->log('INFO', "openOrders= $detail->reference($id)", 'Ledger');
         $ReferenceList[] = $detail->reference;
     }
   
@@ -148,7 +151,7 @@ if($Ledger->selectRefresh(3) === true) {
                 krumo($Exchange);
 
             foreach($Exchange->List as $reference => $detail) {
-                echo "Ledger:updateByReference= $reference\n";
+                echo $Logger->log('INFO', "updateByReference= $reference", 'Ledger');
 
                 $Ledger->status       = $detail->status;
                 $Ledger->description  = $detail->description;
@@ -176,16 +179,16 @@ if($Ledger->selectRefresh(3) === true) {
 /*
  * AUTOMATIC ALERT
  */
-if(TRADE_ALERT_AUTOMATIC) {
+if(TRADE_ALERT && TRADE_ALERT_AUTOMATIC) {
     $sent = 0;
     $History = new History();
-    $alertList = array('15m' => 300, '1h' => 3600, '12h' => 43200, '1d' => 86400);
+    $alertList = array('5m' => 300, '15m' => 900, '1h' => 3600, '2h' => 7200, '12h' => 43200); // , '1d' => 86400
     foreach($alertList as $range => $time) {
         if(!$sent) {
             $History->getTick(date('Y-m-d H:i:s', time()-$time));
             $min=$History->price/TRADE_ALERT_THRESHOLD;
             $max=$History->price*TRADE_ALERT_THRESHOLD;
-            echo "Alert:check= $time - ".round($min,4)."< >".round($max,4)."\n";
+            echo $Logger->log('INFO', "check= $range - ".round($min,4)."< >".round($max,4), 'Alert');
 
             $priceAlert = 0;
             if($price > $max)
@@ -194,20 +197,22 @@ if(TRADE_ALERT_AUTOMATIC) {
                 $priceAlert = $min;
 
             if($priceAlert) {
-                echo "Alert:send= $price vs $priceAlert\n";
+                echo $Logger->log('WARNING', "send= $price vs $priceAlert", 'Alert');
                 $Alert = new Alert();
                 if($Alert->snooze('drop') === true) {
                     $Alert->add('drop', $priceAlert);
                     $Alert->send($Alert->id, $price, $range);
                 }
                 else
-                    echo "Alert:snooze\n";
+                echo $Logger->log('INFO', "snooze", 'Alert');
                     
                 $sent = 1;
             }
         }
     }
 }
+
+$Logger->close();
 
 
 // Display Loading time

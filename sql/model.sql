@@ -3,7 +3,7 @@
 -- http://www.phpmyadmin.net
 --
 -- Client :  db578.1and1.fr
--- Généré le :  Sam 30 Septembre 2017 à 00:25
+-- Généré le :  Sam 30 Septembre 2017 à 00:26
 -- Version du serveur :  5.5.57-0+deb7u1-log
 -- Version de PHP :  5.4.45-0+deb7u11
 
