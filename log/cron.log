@@ -1,9 +1,6 @@
 X-Powered-By: PHP/5.4.45
 Content-type: text/html
 
-Ticker:XETHZEUR=236.00000
-Ledger:emptyReference= 0.999900-320.0000(36)
-Ledger:openOrders= OTVTZ7-V7AVA-B4TZRX(37)
-Ledger:openOrders= OZTLUX-37A3P-J7HKQN(35)
+Simulator:Fixed price at 252.1100
 
-Last execution:2017-09-19 22:14:04 - Load:2.3982s
+Last execution:2017-10-03 00:34:01 - Load:0.0236s

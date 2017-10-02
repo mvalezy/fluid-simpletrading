@@ -22,12 +22,14 @@ class Logger {
     public function __construct($filename, $display = 0, $format = 'text', $rep = TRADE_LOG_REP) {
         
         $this->rep      = $rep;
-        $this->filename = $filename.'.log';
-        $this->file     = $this->rep . $this->filename;
+        $this->filename = $filename;
+        $this->file     = $this->rep . $this->filename.'.log';
         
         
         $this->display  = $display;
         $this->format   = $format;
+
+        $this->archive();
     }
       
       
@@ -93,6 +95,30 @@ class Logger {
                 $obj->message = $this->message;
                 $obj->css = $this->css;
                 return $obj;
+            }
+        }
+    }
+
+    public function archive() {
+        if(file_exists($this->file)) {
+            if(filesize($this->file) > 16777216) { // 2mo
+                $this->open();
+                $this->log('WARNING', 'archive log file', 'maintenance');
+                $this->close();
+
+                $logFile = $this->filename."_".date('Y-m-d').".log";
+                rename($this->file, $this->rep.$logFile);
+
+
+                $zip = new ZipArchive();
+                $zipFile = $this->filename."_".date('Y-m-d').".zip";
+                if ($zip->open($zipFile, ZipArchive::CREATE)===TRUE) {
+                    $zip->addFile($logFile);
+                    $this->log('WARNING', "Added log file to $zipFile");
+                    $zip->close();
+                }
+                else
+                    $this->log('ERROR', "Zip file $zipFile impossible to open");
             }
         }
     }
