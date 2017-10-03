@@ -5,3 +5,4 @@ config/config.inc.php
 config/.htpasswd
 config/.remote-sync.json
 .htaccess
+*.log

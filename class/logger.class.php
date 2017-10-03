@@ -22,12 +22,14 @@ class Logger {
     public function __construct($filename, $display = 0, $format = 'text', $rep = TRADE_LOG_REP) {
         
         $this->rep      = $rep;
-        $this->filename = $filename.'.log';
-        $this->file     = $this->rep . $this->filename;
+        $this->filename = $filename;
+        $this->file     = $this->rep . $this->filename.'.log';
         
         
         $this->display  = $display;
         $this->format   = $format;
+
+        $this->archive();
     }
       
       
@@ -57,11 +59,11 @@ class Logger {
             $this->message .= $message;
         }
 
-        $this->message .= "\n";
+        $this->message .= "\r\n";
     }
 
 	
-    public function log($level, $message, $script = '') {
+    public function log($level, $message, $script = '', $css = 'info') {
 
         if(!is_resource($this->fp))
             $this->open();
@@ -71,15 +73,12 @@ class Logger {
         fwrite($this->fp, date('Y-m-d H:i:s') . " - $level - $this->message");
         
         if($this->display) {
-            return $this->display();
+            return $this->display($css);
         }
     }
 
 	
 	public function display($css = 'info', $message = '', $script = '') {
-
-        if($css != $this->css)
-            $this->css = $css;
 
         if($message)
             $this->getMessage($message, $script);
@@ -91,8 +90,32 @@ class Logger {
             else {
                 $obj = new stdClass();
                 $obj->message = $this->message;
-                $obj->css = $this->css;
+                $obj->css = $css;
                 return $obj;
+            }
+        }
+    }
+
+    public function archive() {
+        if(file_exists($this->file)) {
+            if(filesize($this->file) > 41943040) { // 5mo
+                $this->open();
+                $this->log('WARNING', 'archive log file', 'maintenance');
+                $this->close();
+
+                $logFile = $this->filename."_".date('Y-m-d').".log";
+                rename($this->file, $this->rep.$logFile);
+
+
+                $zip = new ZipArchive();
+                $zipFile = $this->filename."_".date('Y-m-d').".zip";
+                if ($zip->open($zipFile, ZipArchive::CREATE)===TRUE) {
+                    $zip->addFile($logFile);
+                    $this->log('WARNING', "Added log file to $zipFile");
+                    $zip->close();
+                }
+                else
+                    $this->log('ERROR', "Zip file $zipFile impossible to open");
             }
         }
     }

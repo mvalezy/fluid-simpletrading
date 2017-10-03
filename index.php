@@ -128,19 +128,22 @@ else {
     if($cancel) {
 
         if($cancel != 'SIMULATOR') {
+
+            // Cancel by Reference
             $Exchange = new Exchange();
 
             if($Exchange->cancelOrder(0, $cancel) === true) {
-                $message[] = $Logger->display('success', $Exchange->Success);
+                $message[] = $Logger->log('INFO', $Exchange->Success, 'cancelOrder', 'success');
                 $Ledger = new Ledger();
                 $Ledger->cancelByReference($cancel);
                 unset($OpenOrders); // Clear List Array
             }
             else {
-                $message[] = $Logger->display('danger', $Exchange->Error);
+                $message[] = $Logger->log('ERROR', $Exchange->Error, 'cancelOrder', 'danger');
             }
         }
         else {
+            // Cancel by ID for Simulator
             $Ledger = new Ledger();
             $Ledger->cancel($id);
         }
