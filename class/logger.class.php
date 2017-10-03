@@ -59,7 +59,7 @@ class Logger {
             $this->message .= $message;
         }
 
-        $this->message .= "\n";
+        $this->message .= "\r\n";
     }
 
 	
