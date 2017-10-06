@@ -36,7 +36,19 @@ $(document).ready(function() {
 
     });
 
+    var auto_refresh;
+    $(".pause").click(function () {
+        $(this).removeClass("btn-warning").addClass("btn-danger");
+        clearInterval(auto_refresh);
+    });
+    auto_refresh = setInterval(function () {
+        location.reload();
+    }, 60000);
+    
+
 });
+
+
 
 
 // Load the Visualization API
@@ -184,7 +196,7 @@ function drawChartLong() {
 
     var jsonData = $.ajax({
         url: "chart.ajax.php",
-        data: {unit: '1d'},
+        data: {unit: '12h'},
         dataType: "json",
         cache: true,
         async: false

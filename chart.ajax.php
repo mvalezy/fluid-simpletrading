@@ -48,9 +48,11 @@ if(isset($History->List) && is_array($History->List) && count($History->List) > 
     $i=0;
     foreach($googleChartData as $data) {
 
+        $addDate = strtotime($data->addDate);
+
         $googleChartRows[$i]->c[0] = new stdClass();
-        $googleChartRows[$i]->c[0]->v = "Date(".date('Y,n,d,H,i,s', strtotime($data->addDate)).")";
-        $googleChartRows[$i]->c[0]->f = date('d/m H:i', strtotime($data->addDate));
+        $googleChartRows[$i]->c[0]->v = "Date(".date('Y,n,j,H,i,s', $addDate).")";
+        $googleChartRows[$i]->c[0]->f = date('d/m/Y H:i', strtotime($addDate));
 
         /*switch($unit) {
             case '1m':

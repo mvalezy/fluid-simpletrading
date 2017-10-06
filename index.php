@@ -267,7 +267,10 @@ ob_flush();
 
                 <div class="panel-heading">
                     <div class="panel-title"><a href="index.php"><?php echo TRADE_WEBSITE_NAME; ?></a></div>
-                    <div style="float:right; font-size: 80%; position: relative; top:-18px"><a href="index.php?purge=1" class="btn btn-default btn-xs" role="button"><span class="glyphicon glyphicon-flash"></span> Clear cache</a></div>
+                    <div style="float:right; font-size: 80%; position: relative; top:-18px">
+                        <a href="javascript:void(0)" class="btn btn-xs btn-warning pause"><span class="glyphicon glyphicon-pause"></span> Pause refresh</a>
+                        <a href="index.php?purge=1" class="btn btn-default btn-xs" role="button"><span class="glyphicon glyphicon-flash"></span> Clear cache</a>
+                    </div>
                 </div>
 
                 <div style="padding-top:10px" class="panel-body" >
