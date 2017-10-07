@@ -142,9 +142,25 @@ class Ledger {
         $sql = $this->db->query($query);
         mysqlerr($this->db, $query);        
     }
+	
+	
+    public function correctCanceledOrder() {
+
+            if(is_array($this->trades) && count($this->trades)) {
+                $this->trades       = json_encode($this->trades);
+            }
+        
+        if($this->status == 'canceled'
+            && $this->volume_executed > 0
+            && $this->price_executed > 0)
+            $this->status = 'closed';
+        
+    }
 
 
     public function updateByReference($reference) {
+			
+		$this->correctCanceledOrder();
         
         $query = "UPDATE trade_ledger SET updateDate = NOW()";
         
@@ -194,7 +210,15 @@ class Ledger {
 
         $sql = $this->db->query($query);
         mysqlerr($this->db, $query);        
-    }    
+    }  
+    
+    public function cancelScalp($id) {
+        
+        $query = "UPDATE trade_ledger SET updateDate = NOW(), scalp = 'none' WHERE id = ".$this->db->real_escape_string($id)." LIMIT 1;";
+
+        $sql = $this->db->query($query);
+        mysqlerr($this->db, $query);        
+    }   
 
     public function close($id, $price) {
         

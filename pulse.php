@@ -144,7 +144,7 @@ if($Ledger->selectRefresh(3) === true) {
   
     if(count($ReferenceList)) {
   
-        $Exchange = new $Exchange();
+        $Exchange = new Exchange();
         if($Exchange->QueryOrders(0, $ReferenceList) === true) {
 
             if($debug)

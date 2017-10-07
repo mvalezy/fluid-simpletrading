@@ -6,3 +6,6 @@ config/.htpasswd
 config/.remote-sync.json
 .htaccess
 *.log
+simulatorSyncHistory.php
+simulatorFakeOrders.php
+simulatorSync.php

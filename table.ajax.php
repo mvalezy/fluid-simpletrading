@@ -55,11 +55,6 @@ if(isset($Ledger->List) && is_array($Ledger->List) && count($Ledger->List) > 0) 
     $googleTableCols[$i]->type   = 'string';
 
     $i++; $googleTableCols[$i] = new stdClass();
-    $googleTableCols[$i]->id     = 'reference';
-    $googleTableCols[$i]->label  = 'Reference';
-    $googleTableCols[$i]->type   = 'string';
-
-    $i++; $googleTableCols[$i] = new stdClass();
     $googleTableCols[$i]->id     = 'action';
     $googleTableCols[$i]->label  = 'Action';
     $googleTableCols[$i]->type   = 'string';
@@ -74,6 +69,7 @@ if(isset($Ledger->List) && is_array($Ledger->List) && count($Ledger->List) > 0) 
     $googleTableCols[$i]->label  = 'Price';
     $googleTableCols[$i]->type   = 'number';
 
+
     $i++; $googleTableCols[$i] = new stdClass();
     $googleTableCols[$i]->id     = 'total';
     $googleTableCols[$i]->label  = 'Total';
@@ -82,6 +78,11 @@ if(isset($Ledger->List) && is_array($Ledger->List) && count($Ledger->List) > 0) 
     $i++; $googleTableCols[$i] = new stdClass();
     $googleTableCols[$i]->id     = 'gain';
     $googleTableCols[$i]->label  = 'Gain';
+    $googleTableCols[$i]->type   = 'string';
+
+    $i++; $googleTableCols[$i] = new stdClass();
+    $googleTableCols[$i]->id     = 'reference';
+    $googleTableCols[$i]->label  = 'Reference';
     $googleTableCols[$i]->type   = 'string';
 
     $i++; $googleTableCols[$i] = new stdClass();
@@ -112,9 +113,6 @@ if(isset($Ledger->List) && is_array($Ledger->List) && count($Ledger->List) > 0) 
 
         // Status
         $j++; $googleTableRows[$i]->c[$j] = new stdClass(); $googleTableRows[$i]->c[$j]->v = $data->status;
-
-        // Reference
-        $j++; $googleTableRows[$i]->c[$j] = new stdClass(); $googleTableRows[$i]->c[$j]->v = $data->reference;
 
         // Action
         $j++; $googleTableRows[$i]->c[$j] = new stdClass(); $googleTableRows[$i]->c[$j]->v = $data->orderAction;
@@ -149,6 +147,9 @@ if(isset($Ledger->List) && is_array($Ledger->List) && count($Ledger->List) > 0) 
                 $prev->cost += $data->cost; 
                 $prev->fee  += $data->fee;
             }
+            else {
+                $j++; $googleTableRows[$i]->c[$j] = new stdClass(); $googleTableRows[$i]->c[$j]->v = '';
+            }
         }
         else {
             // Volume
@@ -175,14 +176,22 @@ if(isset($Ledger->List) && is_array($Ledger->List) && count($Ledger->List) > 0) 
             }
         }
 
+        // Reference
+        $j++; $googleTableRows[$i]->c[$j] = new stdClass(); $googleTableRows[$i]->c[$j]->v = $data->reference;
+
         // Info
         if($data->status != 'canceled') {
             $j++; $googleTableRows[$i]->c[$j] = new stdClass();
-            $googleTableRows[$i]->c[$j]->v = "";
+            
+            if($data->scalp != 'none') {
+                $googleTableRows[$i]->c[$j]->v = "<a href='index.php?cancelScalp=$data->reference&id=$data->id'>";
             if($data->stopLoss)
                 $googleTableRows[$i]->c[$j]->v .= "stop-loss:".money_format('%i', $data->stopLoss);
             if($data->takeProfit)
                 $googleTableRows[$i]->c[$j]->v .= " take-profit:".money_format('%i', $data->takeProfit);
+
+                $googleTableRows[$i]->c[$j]->v .= "</a>";
+            }
         }
 
         $prev->status = $data->status;

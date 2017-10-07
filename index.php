@@ -17,6 +17,8 @@ else $id = 0;
 if(isset($_GET['cancel']) && $_GET['cancel'] != '') { $cancel = $_GET['cancel']; }
 else $cancel = '';
 
+if(isset($_GET['cancelScalp']) && $_GET['cancelScalp'] != '') { $cancelScalp = $_GET['cancelScalp']; }
+else $cancelScalp = '';
 
 $Logger = new Logger('trader', 1, 'html');
 
@@ -143,10 +145,18 @@ else {
             }
         }
         else {
+            $message[] = $Logger->log('INFO', "Canceled simulator Order $cancel ($id)", 'cancelOrder', 'success');
+
             // Cancel by ID for Simulator
             $Ledger = new Ledger();
             $Ledger->cancel($id);
         }
+    }
+    elseif($cancelScalp) {
+        $message[] = $Logger->log('INFO', "Canceled Scalp for Order $cancelScalp ($id)", 'cancelOrder', 'success');
+        // Cancel by ID
+        $Ledger = new Ledger();
+        $Ledger->cancelScalp($id);
     }
 
 
@@ -268,7 +278,7 @@ ob_flush();
                 <div class="panel-heading">
                     <div class="panel-title"><a href="index.php"><?php echo TRADE_WEBSITE_NAME; ?></a></div>
                     <div style="float:right; font-size: 80%; position: relative; top:-18px">
-                        <a href="javascript:void(0)" class="btn btn-xs btn-warning pause"><span class="glyphicon glyphicon-pause"></span> Pause refresh</a>
+                        <a href="javascript:void(0)" id="auto-refresh" class="btn btn-xs btn-warning pause"><span class="glyphicon glyphicon-pause"></span> Auto refresh</a>
                         <a href="index.php?purge=1" class="btn btn-default btn-xs" role="button"><span class="glyphicon glyphicon-flash"></span> Clear cache</a>
                     </div>
                 </div>
@@ -476,8 +486,9 @@ else {
                                 <span class="input-group-addon">
                                     <input type="checkbox" aria-label="Activate Sell at Take Profit" id="takeProfit_active" name="takeProfit_active" value="1">
                                 </span>
-                                <input type="text" class="form-control" aria-label="" id="takeProfit_rate" name="takeProfit_rate" value="10">
+                                <input type="text" class="form-control" aria-label="" id="takeProfit_rate" name="takeProfit_rate" value="5">
                                 <div class="input-group-addon">%</div>
+                                <div id="takeProfit_price" class="input-group-addon"></div>
                                 </div>
                             </div>
                         </div>
@@ -491,8 +502,9 @@ else {
                                 <span class="input-group-addon">
                                     <input type="checkbox" aria-label="Activate Sell at Stop Loss Profit" id="stopLoss_active" name="stopLoss_active" value="1">
                                 </span>
-                                <input type="text" class="form-control" aria-label="" id="stopLoss_rate" name="stopLoss_rate" value="3">
+                                <input type="text" class="form-control" aria-label="" id="stopLoss_rate" name="stopLoss_rate" value="1">
                                 <div class="input-group-addon">%</div>
+                                <div id="stopLoss_price" class="input-group-addon"></div>
                                 </div>
                             </div>
                         </div>
