@@ -116,7 +116,7 @@ class Exchange {
     }
 
 
-	public function searchOrder($addDate, $volume = 0, $price = 0) {
+	public function searchOrder($addDate, $orderAction, $type, $volume = 0, $price = 0) {
 
 		if($this->simulatorOnly) {
             return false;
@@ -145,22 +145,23 @@ class Exchange {
 		elseif(isset($Response['result']) && is_array($Response['result']) && count($Response['result']) > 0) {
 			if(is_array($Response['result']['open']))
 				foreach($Response['result']['open'] as $reference => $result) {
-					if($result['userref'] == $userref) {
-						$found = 0;
+					if($result['userref'] == $userref && $result['descr']['type'] == $orderAction && $result['descr']['ordertype'] == $type) {
+						$found = 1;
+
 						if($volume)
-							if($result['vol'] != $volume)
+							if(floatval($result['vol']) != floatval($volume))
 								$found = 0;
-						if($price)
-							if($result['descr']['price'] != $price)
+
+						if($price && $type == 'limit')
+							if(floatval($result['descr']['price']) != floatval($price))
 								$found = 0;
 						
 						if($found == 1) {
 							$this->reference = $reference;
 							return true;
 						}
-					}	
+					}
 				}
-
 		}
 
 		// STEP 2 : SEARCH CLOSED ORDERS

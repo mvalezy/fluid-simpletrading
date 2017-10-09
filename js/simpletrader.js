@@ -2,25 +2,67 @@ $(document).ready(function() {
 
     $("#price").keyup(function() {
 
-        var order  = $("#orderAction input[type='radio']:checked").val();
-        var price = $("#price").val();
+        var order   = $("#orderAction input[type='radio']:checked").val();
+        var price   = $("#price").val();
 
         if(order == 'buy') {
             var total = $("#total").val();
-            var volume = Math.round((total / price * 100000 )) / 100000;
+            var volume = Math.round(total / price * 100000 ) / 100000;
 
             $("#volume").val(volume);
 
         }
         else {
             var volume = $("#volume").val();
-            var total = Math.round((volume * price * 100000 )) / 100000;
+            var total = Math.round(volume * price * 100 ) / 100;
 
             $("#total").val(total);
 
         }
 
+        updateScalp(price);
+
     });
+
+    $("#stopLoss_active").click(function() {
+        updateScalp();
+    });
+
+    $("#takeProfit_active").click(function() {
+        updateScalp();
+    });
+
+    $("#stopLoss_rate").keyup(function() {
+        updateScalp();
+    });
+
+    $("#takeProfit_rate").keyup(function() {
+        updateScalp();
+    });
+
+
+    function updateScalp(price = 0) {
+
+        if(price == 0) {
+            var price   = $("#price").val();
+        }
+
+        if($("#takeProfit_active").is(":checked")) {
+            var takeProfit        = $("#takeProfit_rate").val();
+            var takeProfitPrice   = Math.round(price * (1 + takeProfit/100 ) * 100) / 100;
+            $("#takeProfit_price").html(takeProfitPrice + " EUR");
+        }
+
+        if($("#stopLoss_active").is(":checked")) {
+            var stopLoss        = $("#stopLoss_rate").val();
+            var stopLossPrice   = Math.round(price / (1 + stopLoss/100 ) * 100) / 100;
+            $("#stopLoss_price").html(stopLossPrice + " EUR");
+        }
+    }
+
+
+
+
 
     $("#BalanceZEUR").click(function() {
 
@@ -36,7 +78,41 @@ $(document).ready(function() {
 
     });
 
+    
+    $("#auto-refresh").click(function () {
+
+        if ( $(this).hasClass( "play" ) ) {
+
+            console.log("Start auto-refresh");
+            $(this).removeClass("play").removeClass("btn-success").addClass("pause").addClass("btn-warning");
+            $("#auto-refresh span").removeClass("glyphicon-play").addClass("glyphicon-pause");
+            startAutoRefresh();
+
+        }
+        else {
+
+            console.log("Pause auto-refresh");
+            $(this).removeClass("pause").removeClass("btn-warning").addClass("play").addClass("btn-success");
+            $("#auto-refresh span").removeClass("glyphicon-pause").addClass("glyphicon-play");
+            clearInterval(auto_refresh);
+
+        }
+
+    });
+
 });
+
+
+
+var auto_refresh;
+function startAutoRefresh() {
+    auto_refresh = setInterval(function () {
+        //location.reload();
+        window.location.href = "index.php?refresh=1";
+    }, 60000);
+} 
+
+
 
 
 // Load the Visualization API
@@ -184,7 +260,7 @@ function drawChartLong() {
 
     var jsonData = $.ajax({
         url: "chart.ajax.php",
-        data: {unit: '1d'},
+        data: {unit: '12h'},
         dataType: "json",
         cache: true,
         async: false

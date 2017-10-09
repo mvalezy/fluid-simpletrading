@@ -89,6 +89,9 @@ class History {
             case '4h':
                 $div = 14400;
                 break;
+            case '12h':
+                $div = 43200;
+                break;
             case '1d':
                 $div = 86400;
                 break;
