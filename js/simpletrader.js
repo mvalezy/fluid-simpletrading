@@ -78,34 +78,39 @@ $(document).ready(function() {
 
     });
 
-    var auto_refresh;
+    
     $("#auto-refresh").click(function () {
 
-        if ( $(this).hasClass( "pause" ) ) {
-            console.log("Pause auto-refresh");
-            $(this).removeClass("pause").removeClass("btn-warning").addClass("play").addClass("btn-danger");
-            $("#auto-refresh span").removeClass("glyphicon-pause").addClass("glyphicon-play");
-            clearInterval(auto_refresh);
-        }
-        else {
-            console.log("Restart auto-refresh");
-            $(this).removeClass("play").removeClass("btn-warning").addClass("pause").addClass("btn-warning");
+        if ( $(this).hasClass( "play" ) ) {
+
+            console.log("Start auto-refresh");
+            $(this).removeClass("play").removeClass("btn-success").addClass("pause").addClass("btn-warning");
             $("#auto-refresh span").removeClass("glyphicon-play").addClass("glyphicon-pause");
             startAutoRefresh();
+
+        }
+        else {
+
+            console.log("Pause auto-refresh");
+            $(this).removeClass("pause").removeClass("btn-warning").addClass("play").addClass("btn-success");
+            $("#auto-refresh span").removeClass("glyphicon-pause").addClass("glyphicon-play");
+            clearInterval(auto_refresh);
+
         }
 
     });
 
-
-    function startAutoRefresh() {
-        auto_refresh = setInterval(function () {
-            location.reload();
-        }, 60000);
-    }
-    startAutoRefresh();
-    
-
 });
+
+
+
+var auto_refresh;
+function startAutoRefresh() {
+    auto_refresh = setInterval(function () {
+        //location.reload();
+        window.location.href = "index.php?refresh=1";
+    }, 60000);
+} 
 
 
 

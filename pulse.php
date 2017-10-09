@@ -106,25 +106,33 @@ if(is_array($Alert->List) && count($Alert->List) > 0) {
 $Ledger = new Ledger();
 if($Ledger->selectEmptyReference() === true) {
     foreach($Ledger->List as $id => $detail) {
-        echo $Logger->log('WARNING', "emptyReference= $detail->volume-$detail->price($id)", 'Ledger');
+        echo $Logger->log('WARNING', "emptyReference= $detail->orderAction-$detail->type-$detail->volume-$detail->price($id)", 'Ledger');
 
         // 1- ORDER FOUND on Exchange > Update Reference
         $Exchange = new Exchange();
-        if($Exchange->searchOrder($detail->addDate, $detail->volume, $detail->price) === true) {
+        if($Exchange->searchOrder($detail->addDate, $detail->orderAction, $detail->type, $detail->volume, $detail->price) === true) {
             echo $Logger->log('WARNING', "foundOrder= $Exchange->reference", 'Exchange');
              // STORE Reference of Last Order
              $Ledger->reference = $Exchange->reference;
              $Ledger->updateReference($id);
         }
 
+
         // 2- ORDER NOT FOUND on Exchange > Retry Order
         else {
-            // RETRY ORDER
-            if($Exchange->AddOrder($id) === true) {
-                echo $Logger->log('WARNING', "createdOrder= $detail->volume-$detail->price($id)", 'Ledger');
-                // STORE Reference of Last Order
-                $Ledger->reference = $Exchange->reference;
-                $Ledger->updateReference($id);
+            
+            // RETRY only if Order is 30 seconds Old
+            $addDate = strtotime($detail->addDate);
+            $time = time()-30;
+
+            if($addDate < $time) {
+                // RETRY ORDER
+                if($Exchange->AddOrder($id) === true) {
+                    echo $Logger->log('WARNING', "createdOrder= $detail->volume-$detail->price($id)", 'Ledger');
+                    // STORE Reference of Last Order
+                    $Ledger->reference = $Exchange->reference;
+                    $Ledger->updateReference($id);
+                }
             }
         }
     }

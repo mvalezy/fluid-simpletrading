@@ -325,7 +325,7 @@ class Ledger {
     }
 
     public function selectEmptyReference($limit = 2) {
-        $query = "SELECT id, volume, price, addDate FROM trade_ledger WHERE reference IS NULL ORDER BY addDate DESC LIMIT $limit;";
+        $query = "SELECT * FROM trade_ledger WHERE reference IS NULL ORDER BY addDate DESC LIMIT $limit;";
         
         $sql = $this->db->query($query);
         mysqlerr($this->db, $query);
