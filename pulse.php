@@ -196,7 +196,7 @@ if(TRADE_ALERT && TRADE_ALERT_AUTOMATIC) {
             $History->getTick(date('Y-m-d H:i:s', time()-$time));
             $min=$History->price/TRADE_ALERT_THRESHOLD;
             $max=$History->price*TRADE_ALERT_THRESHOLD;
-            echo $Logger->log('INFO', "check= $range - ".round($min,4)."< >".round($max,4), 'Alert');
+            //echo $Logger->log('INFO', "check= $range - ".round($min,4)."< >".round($max,4), 'Alert');
 
             $priceAlert = 0;
             if($price > $max)
@@ -212,7 +212,7 @@ if(TRADE_ALERT && TRADE_ALERT_AUTOMATIC) {
                     $Alert->send($Alert->id, $price, $range);
                 }
                 else
-                echo $Logger->log('INFO', "snooze", 'Alert');
+                    echo $Logger->log('INFO', "snooze $range - ".round($min,4)."< >".round($max,4), 'Alert');
                     
                 $sent = 1;
             }

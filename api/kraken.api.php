@@ -188,17 +188,21 @@ class Exchange {
 		elseif(isset($Response['result']) && is_array($Response['result']) && count($Response['result']) > 0) {
 			if(is_array($Response['result']['closed']))
 				foreach($Response['result']['closed'] as $reference => $result) {
-					$found = 1;
-					if($volume)
-						if($result['vol'] != $volume)
-							$found = 0;
-					if($price)
-						if($result['descr']['price'] != $price)
-							$found = 0;
-					
-					if($found == 1) {
-						$this->reference = $reference;
-						return true;
+					if($result['userref'] == $userref && $result['descr']['type'] == $orderAction && $result['descr']['ordertype'] == $type) {
+						$found = 1;
+
+						if($volume)
+							if(floatval($result['vol']) != floatval($volume))
+								$found = 0;
+
+						if($price && $type == 'limit')
+							if(floatval($result['descr']['price']) != floatval($price))
+								$found = 0;
+						
+						if($found == 1) {
+							$this->reference = $reference;
+							return true;
+						}
 					}
 				}
 
