@@ -142,6 +142,19 @@ if(isset($Ledger->List) && is_array($Ledger->List) && count($Ledger->List) > 0) 
                 $prev->cost = 0;
                 $prev->fee  = 0;
             }
+            elseif($data->orderAction == 'sell' && $prev->action == 'sell') {
+                $previ = $i-1;
+                $j++; $googleTableRows[$i]->c[$j] = new stdClass();
+                $gain = $data->cost - $prev->cost - $data->fee - $prev->fee + $googleTableRows[$previ]->c[$j]->v;
+                $googleTableRows[$i]->c[$j]->v = $gain;
+                $googleTableRows[$i]->c[$j]->f = money_format('%i', $gain);
+                $prev->cost = 0;
+                $prev->fee  = 0;
+              
+                // reset prev gain
+                $googleTableRows[$previ]->c[$j]->v = '';
+                $googleTableRows[$previ]->c[$j]->f = '';
+            }
             elseif($data->orderAction == 'buy') {
                 $j++; $googleTableRows[$i]->c[$j] = new stdClass(); $googleTableRows[$i]->c[$j]->v = '';
                 $prev->cost += $data->cost; 

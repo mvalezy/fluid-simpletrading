@@ -18,7 +18,7 @@ else $price = 0;
 /*
  * CRON CONFIG
  * 30 seconds
- * * * * * * /usr/bin/php6 /kunden/homepages/23/d202161969/htdocs/demo/trade/pulse.php > /kunden/homepages/23/d202161969/htdocs/demo/trade/log/cron.log 2>&1
+ * * * * * * /usr/bin/php6 /kunden/homepages/23/d202161969/htdocs/.../pulse.php > /kunden/homepages/23/d202161969/htdocs/.../log/cron.log 2>&1
  */
 
 $Logger = new Logger('pulse', 1);

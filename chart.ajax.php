@@ -37,7 +37,12 @@ if(isset($History->List) && is_array($History->List) && count($History->List) > 
     $googleChartCols[$i] = new stdClass();
     $googleChartCols[$i]->id     = 'date';
     $googleChartCols[$i]->label  = 'Time';
-    $googleChartCols[$i]->type   = 'datetime';
+  
+    if($unit == '12h')
+      $googleChartCols[$i]->type   = 'date';
+    else
+      $googleChartCols[$i]->type   = 'datetime';
+    
     
     $i++;
     $googleChartCols[$i] = new stdClass();
@@ -49,10 +54,12 @@ if(isset($History->List) && is_array($History->List) && count($History->List) > 
     foreach($googleChartData as $data) {
 
         $addDate = strtotime($data->addDate);
+        $month = date('n', $addDate)-1;
+        $day = date('j', $addDate)-1;
 
         $googleChartRows[$i]->c[0] = new stdClass();
-        $googleChartRows[$i]->c[0]->v = "Date(".date('Y,n,j,H,i,s', $addDate).")";
-        $googleChartRows[$i]->c[0]->f = date('d/m/Y H:i', strtotime($addDate));
+        $googleChartRows[$i]->c[0]->v = "Date(".date('Y', $addDate).",$month,$day,".date('H,i,s', $addDate).")";
+        $googleChartRows[$i]->c[0]->f = date('d/m/Y H:i', $addDate);
 
         /*switch($unit) {
             case '1m':

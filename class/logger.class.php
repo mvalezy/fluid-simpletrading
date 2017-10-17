@@ -98,7 +98,7 @@ class Logger {
 
     public function archive() {
         if(file_exists($this->file)) {
-            if(filesize($this->file) > 41943040) { // 5mo
+            if(filesize($this->file) >= 2097152) { // 2mo
                 $this->open();
                 $this->log('WARNING', 'archive log file', 'maintenance');
                 $this->close();
@@ -111,11 +111,11 @@ class Logger {
                 $zipFile = $this->filename."_".date('Y-m-d').".zip";
                 if ($zip->open($zipFile, ZipArchive::CREATE)===TRUE) {
                     $zip->addFile($logFile);
-                    $this->log('WARNING', "Added log file to $zipFile");
+                    $this->log('WARNING', "Added log file to $zipFile", 'maintenance');
                     $zip->close();
                 }
                 else
-                    $this->log('ERROR', "Zip file $zipFile impossible to open");
+                    $this->log('ERROR', "Zip file $zipFile impossible to open", 'maintenance');
             }
         }
     }
