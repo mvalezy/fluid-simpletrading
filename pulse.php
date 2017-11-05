@@ -100,6 +100,44 @@ if(is_array($Alert->List) && count($Alert->List) > 0) {
 }
 
 /*
+ * LEDGER
+ * BUY / SELL at Position
+ */
+$Ledger = new Ledger();
+$Ledger->selectPosition($price);
+
+if(is_array($Ledger->List) && count($Ledger->List) > 0) {
+   foreach($Ledger->List as $id => $detail) {
+        echo $Logger->log('WARNING', "position=sell $detail->volume-$price($id)", 'Ledger');
+
+        $Ledger->description     = "$detail->orderAction $detail->volume $detail->pair @ position $detail->price";
+        $Ledger->volume_executed = $detail->volume;
+        $Ledger->price_executed  = $detail->price;
+        $Ledger->cost            = $detail->total;
+        $Ledger->update($id);
+
+        $Ledger->close($id, $price);
+
+        $Ledger->parentid       = $id;
+        $Ledger->orderAction    = $detail->orderAction;
+        $Ledger->type           = 'market';
+        $Ledger->price          = $price;
+        $Ledger->volume         = $detail->volume;
+        $Ledger->total          = $Ledger->price * $Ledger->volume;
+
+        $Ledger->round();
+        $Ledger->add();
+
+        $Exchange = new Exchange();
+        if($Exchange->AddOrder($Ledger->id) === true) {
+            // STORE Reference of Last Order
+            $Ledger->reference = $Exchange->reference;
+            $Ledger->updateReference($Ledger->id);
+        }
+    }
+}
+
+/*
  * FIND ORDER
  * Fill reference on Ledger in case of timeout
  */

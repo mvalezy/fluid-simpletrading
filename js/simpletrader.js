@@ -128,7 +128,7 @@ function drawTableOpen() {
 
     var jsonData = $.ajax({
     url: "table.ajax.php",
-    data: {limit: 20, status: 'open'},
+    data: {limit: 10, status: 'open'},
     dataType: "json",
     cache: false,
     //method: "POST",
