@@ -102,7 +102,7 @@ class Ledger {
         if($this->reference)
             $query_ins .= ", reference = '$this->reference'";
 		
-		    if($this->parentid)
+        if($this->parentid)
             $query_ins .= ", parentid = $this->parentid";
         
         if($this->takeProfit_active == 1)
