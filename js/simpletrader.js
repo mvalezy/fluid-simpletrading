@@ -1,20 +1,32 @@
+var auto_refresh;
+function startAutoRefresh() {
+    auto_refresh = setInterval(function () {
+        //location.reload();
+        window.location.href = "index.php?refresh=1";
+    }, 60000);
+} 
+
+
 $(document).ready(function() {
 
     $("#price").keyup(function() {
 
         var order   = $("#orderAction input[type='radio']:checked").val();
         var price   = $("#price").val();
+      
+        var volume = 0;
+        var total = 0;
 
         if(order == 'buy') {
-            var total = $("#total").val();
-            var volume = Math.round(total / price * 100000 ) / 100000;
+            total = $("#total").val();
+            volume = Math.round(total / price * 100000 ) / 100000;
 
             $("#volume").val(volume);
 
         }
         else {
-            var volume = $("#volume").val();
-            var total = Math.round(volume * price * 100 ) / 100;
+            volume = $("#volume").val();
+            total = Math.round(volume * price * 100 ) / 100;
 
             $("#total").val(total);
 
@@ -44,7 +56,7 @@ $(document).ready(function() {
     function updateScalp(price = 0) {
 
         if(price == 0) {
-            var price   = $("#price").val();
+            price = $("#price").val();
         }
 
         if($("#takeProfit_active").is(":checked")) {
@@ -64,14 +76,14 @@ $(document).ready(function() {
 
 
 
-    $("#BalanceZEUR").click(function() {
+    $("#UpdateBalanceZEUR").click(function() {
 
         var balance  = Math.round(($("#BalanceZEUR").val() * 100 )) / 100;
         $("#total").val(balance);
 
     });
 
-    $("#BalanceXETH").click(function() {
+    $("#UpdateBalanceXETH").click(function() {
 
         var balance  = Math.round(($("#BalanceXETH").val() * 100000 )) / 100000;
         $("#volume").val(balance);
@@ -104,15 +116,6 @@ $(document).ready(function() {
 
 
 
-var auto_refresh;
-function startAutoRefresh() {
-    auto_refresh = setInterval(function () {
-        //location.reload();
-        window.location.href = "index.php?refresh=1";
-    }, 60000);
-} 
-
-
 
 
 // Load the Visualization API
@@ -125,7 +128,7 @@ function drawTableOpen() {
 
     var jsonData = $.ajax({
     url: "table.ajax.php",
-    data: {limit: 20, status: 'open'},
+    data: {limit: 10, status: 'open'},
     dataType: "json",
     cache: false,
     //method: "POST",

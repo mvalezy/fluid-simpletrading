@@ -133,19 +133,37 @@ if(isset($Ledger->List) && is_array($Ledger->List) && count($Ledger->List) > 0) 
             $googleTableRows[$i]->c[$j]->v = $data->cost;
             $googleTableRows[$i]->c[$j]->f = money_format('%i', $data->cost);
 
-            // Gain
-            if($prev->cost && $data->orderAction == 'sell' && $prev->action == 'buy') {
-                $j++; $googleTableRows[$i]->c[$j] = new stdClass();
-                $gain = $data->cost - $prev->cost - $data->fee - $prev->fee;
-                $googleTableRows[$i]->c[$j]->v = $gain;
-                $googleTableRows[$i]->c[$j]->f = money_format('%i', $gain);
-                $prev->cost = 0;
-                $prev->fee  = 0;
-            }
-            elseif($data->orderAction == 'buy') {
-                $j++; $googleTableRows[$i]->c[$j] = new stdClass(); $googleTableRows[$i]->c[$j]->v = '';
-                $prev->cost += $data->cost; 
-                $prev->fee  += $data->fee;
+            // Gain if limit / market
+            if($data->type != 'position') {
+                if($prev->cost && $data->orderAction == 'sell' && $prev->action == 'buy') {
+                    $j++; $googleTableRows[$i]->c[$j] = new stdClass();
+                    $gain = $data->cost - $prev->cost - $data->fee - $prev->fee;
+                    $googleTableRows[$i]->c[$j]->v = $gain;
+                    $googleTableRows[$i]->c[$j]->f = money_format('%i', $gain);
+                    $prev->cost = 0;
+                    $prev->fee  = 0;
+                }
+                elseif($data->orderAction == 'sell' && $prev->action == 'sell') {
+                    $previ = $i-1;
+                    $j++; $googleTableRows[$i]->c[$j] = new stdClass();
+                    $gain = $data->cost - $prev->cost - $data->fee - $prev->fee + $googleTableRows[$previ]->c[$j]->v;
+                    $googleTableRows[$i]->c[$j]->v = $gain;
+                    $googleTableRows[$i]->c[$j]->f = money_format('%i', $gain);
+                    $prev->cost = 0;
+                    $prev->fee  = 0;
+                
+                    // reset prev gain
+                    $googleTableRows[$previ]->c[$j]->v = '';
+                    $googleTableRows[$previ]->c[$j]->f = '';
+                }
+                elseif($data->orderAction == 'buy') {
+                    $j++; $googleTableRows[$i]->c[$j] = new stdClass(); $googleTableRows[$i]->c[$j]->v = '';
+                    $prev->cost += $data->cost; 
+                    $prev->fee  += $data->fee;
+                }
+                else {
+                    $j++; $googleTableRows[$i]->c[$j] = new stdClass(); $googleTableRows[$i]->c[$j]->v = '';
+                }
             }
             else {
                 $j++; $googleTableRows[$i]->c[$j] = new stdClass(); $googleTableRows[$i]->c[$j]->v = '';
@@ -185,18 +203,21 @@ if(isset($Ledger->List) && is_array($Ledger->List) && count($Ledger->List) > 0) 
             
             if($data->scalp != 'none') {
                 $googleTableRows[$i]->c[$j]->v = "<a href='index.php?cancelScalp=$data->reference&id=$data->id'>";
-            if($data->stopLoss)
-                $googleTableRows[$i]->c[$j]->v .= "stop-loss:".money_format('%i', $data->stopLoss);
-            if($data->takeProfit)
-                $googleTableRows[$i]->c[$j]->v .= " take-profit:".money_format('%i', $data->takeProfit);
+                if($data->stopLoss)
+                    $googleTableRows[$i]->c[$j]->v .= "stop-loss:".money_format('%i', $data->stopLoss);
+                if($data->takeProfit)
+                    $googleTableRows[$i]->c[$j]->v .= " take-profit:".money_format('%i', $data->takeProfit);
 
                 $googleTableRows[$i]->c[$j]->v .= "</a>";
             }
         }
 
-        $prev->status = $data->status;
-        $prev->action = $data->orderAction;
-        $prev->id = $data->id;
+        // Gain calculation
+        if($data->type != 'position') {
+            $prev->status = $data->status;
+            $prev->action = $data->orderAction;
+            $prev->id = $data->id;
+        }
         $i++;
         
     }

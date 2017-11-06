@@ -18,7 +18,7 @@ else $price = 0;
 /*
  * CRON CONFIG
  * 30 seconds
- * * * * * * /usr/bin/php6 /kunden/homepages/23/d202161969/htdocs/demo/trade/pulse.php > /kunden/homepages/23/d202161969/htdocs/demo/trade/log/cron.log 2>&1
+ * * * * * * /usr/bin/php6 /kunden/homepages/23/d202161969/htdocs/.../pulse.php > /kunden/homepages/23/d202161969/htdocs/.../log/cron.log 2>&1
  */
 
 $Logger = new Logger('pulse', 1);
@@ -82,6 +82,45 @@ if(is_array($Alert->List) && count($Alert->List) > 0) {
 
         $Ledger->parentid       = $id;
         $Ledger->orderAction    = 'sell';
+        $Ledger->type           = 'market';
+        $Ledger->price          = $price;
+        $Ledger->volume         = $detail->volume;
+        $Ledger->total          = $Ledger->price * $Ledger->volume;
+
+        $Ledger->round();
+        $Ledger->add();
+
+        $Exchange = new Exchange();
+        if($Exchange->AddOrder($Ledger->id) === true) {
+            // STORE Reference of Last Order
+            $Ledger->reference = $Exchange->reference;
+            $Ledger->updateReference($Ledger->id);
+        }
+    }
+}
+
+/*
+ * LEDGER
+ * BUY / SELL at Position
+ */
+$Ledger = new Ledger();
+$Ledger->selectPosition($price);
+
+if(is_array($Ledger->List) && count($Ledger->List) > 0) {
+   foreach($Ledger->List as $id => $detail) {
+        echo $Logger->log('WARNING', "position=sell $detail->volume-$price($id)", 'Ledger');
+
+        $Ledger->reference       = 'position';
+        $Ledger->description     = "$detail->orderAction $detail->volume $detail->pair @ position $detail->price";
+        $Ledger->volume_executed = $detail->volume;
+        $Ledger->price_executed  = $detail->price;
+        $Ledger->cost            = $detail->total;
+        $Ledger->update($id);
+
+        $Ledger->close($id, $price);
+
+        $Ledger->parentid       = $id;
+        $Ledger->orderAction    = $detail->orderAction;
         $Ledger->type           = 'market';
         $Ledger->price          = $price;
         $Ledger->volume         = $detail->volume;
@@ -196,7 +235,7 @@ if(TRADE_ALERT && TRADE_ALERT_AUTOMATIC) {
             $History->getTick(date('Y-m-d H:i:s', time()-$time));
             $min=$History->price/TRADE_ALERT_THRESHOLD;
             $max=$History->price*TRADE_ALERT_THRESHOLD;
-            echo $Logger->log('INFO', "check= $range - ".round($min,4)."< >".round($max,4), 'Alert');
+            //echo $Logger->log('INFO', "check= $range - ".round($min,4)."< >".round($max,4), 'Alert');
 
             $priceAlert = 0;
             if($price > $max)
@@ -212,7 +251,7 @@ if(TRADE_ALERT && TRADE_ALERT_AUTOMATIC) {
                     $Alert->send($Alert->id, $price, $range);
                 }
                 else
-                echo $Logger->log('INFO', "snooze", 'Alert');
+                    echo $Logger->log('INFO', "snooze $range - ".round($min,4)."< >".round($max,4), 'Alert');
                     
                 $sent = 1;
             }

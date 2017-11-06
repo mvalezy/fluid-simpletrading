@@ -82,21 +82,26 @@ if(isset($_POST['addOrder']) && $_POST['addOrder']) {
         if($debug)
             krumo($Ledger);
 
-        // POST Exchange Order
-        $Exchange = new Exchange();
+        if($Ledger->type != 'position') {
+            // POST Exchange Order
+            $Exchange = new Exchange();
 
-        if($Exchange->AddOrder($Ledger->id) === true) {
-            // STORE Reference of Last Order
-            $Ledger->reference = $Exchange->reference;
-            $Ledger->updateReference($Ledger->id);
+            if($Exchange->AddOrder($Ledger->id) === true) {
+                // STORE Reference of Last Order
+                $Ledger->reference = $Exchange->reference;
+                $Ledger->updateReference($Ledger->id);
 
-            $message[] = $Logger->display('success', $Exchange->Success);
+                $message[] = $Logger->display('success', $Exchange->Success);
 
-            // Delete Cookie
-            setcookie("SimpleTrader", '', 1);
+                // Delete Cookie
+                setcookie("SimpleTrader", '', 1);
+            }
+            else {
+                $message[] = $Logger->display('danger', $Exchange->Error);
+            }
         }
         else {
-            $message[] = $Logger->display('danger', $Exchange->Error);
+            $message[] = $Logger->display('success', "Posted position at $Ledger->price");
         }
 
         if($debug)
@@ -131,9 +136,22 @@ else {
      */
 
     if($cancel) {
-
-        if($cancel != 'SIMULATOR') {
-
+        if($cancel == 'SIMULATOR') {
+            $message[] = $Logger->log('INFO', "Canceled simulator Order $cancel ($id)", 'cancelOrder', 'success');
+            
+            // Cancel by ID for Simulator
+            $Ledger = new Ledger();
+            $Ledger->cancel($id);
+                        
+        }
+        elseif($cancel == 'position') {
+            $message[] = $Logger->log('INFO', "Canceled Position Order ($id)", 'cancelOrder', 'success');
+            
+            // Cancel by ID for Simulator
+            $Ledger = new Ledger();
+            $Ledger->cancel($id);
+        }
+        else {
             // Cancel by Reference
             $Exchange = new Exchange();
 
@@ -146,13 +164,6 @@ else {
             else {
                 $message[] = $Logger->log('ERROR', $Exchange->Error, 'cancelOrder', 'danger');
             }
-        }
-        else {
-            $message[] = $Logger->log('INFO', "Canceled simulator Order $cancel ($id)", 'cancelOrder', 'success');
-
-            // Cancel by ID for Simulator
-            $Ledger = new Ledger();
-            $Ledger->cancel($id);
         }
     }
     elseif($cancelScalp) {
