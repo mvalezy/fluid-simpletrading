@@ -144,7 +144,7 @@ else {
             $Ledger->cancel($id);
                         
         }
-        elseif($cancel == 'none') {
+        elseif($cancel == 'position') {
             $message[] = $Logger->log('INFO', "Canceled Position Order ($id)", 'cancelOrder', 'success');
             
             // Cancel by ID for Simulator

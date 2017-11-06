@@ -327,7 +327,7 @@ class Ledger {
     }    
 
     public function selectRefresh($limit = 10) {
-        $query = "SELECT * FROM trade_ledger WHERE status = 'open' AND reference IS NOT NULL AND reference != 'SIMULATOR' ORDER BY addDate ASC LIMIT $limit;";
+        $query = "SELECT * FROM trade_ledger WHERE type != 'position' AND status = 'open' AND reference IS NOT NULL AND reference != 'SIMULATOR' ORDER BY addDate ASC LIMIT $limit;";
         
         $sql = $this->db->query($query);
         mysqlerr($this->db, $query);

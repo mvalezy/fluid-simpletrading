@@ -133,7 +133,7 @@ if(isset($Ledger->List) && is_array($Ledger->List) && count($Ledger->List) > 0) 
             $googleTableRows[$i]->c[$j]->v = $data->cost;
             $googleTableRows[$i]->c[$j]->f = money_format('%i', $data->cost);
 
-            // Gain
+            // Gain if limit / market
             if($data->type != 'position') {
                 if($prev->cost && $data->orderAction == 'sell' && $prev->action == 'buy') {
                     $j++; $googleTableRows[$i]->c[$j] = new stdClass();
@@ -198,25 +198,22 @@ if(isset($Ledger->List) && is_array($Ledger->List) && count($Ledger->List) > 0) 
         $j++; $googleTableRows[$i]->c[$j] = new stdClass(); $googleTableRows[$i]->c[$j]->v = $data->reference;
 
         // Info
-        if($data->type == 'position') {
+        if($data->status != 'canceled') {
             $j++; $googleTableRows[$i]->c[$j] = new stdClass();
-            $googleTableRows[$i]->c[$j]->v = 'Position';
-        }
-        else {
-            if($data->status != 'canceled') {
-                $j++; $googleTableRows[$i]->c[$j] = new stdClass();
-                
-                if($data->scalp != 'none') {
-                    $googleTableRows[$i]->c[$j]->v = "<a href='index.php?cancelScalp=$data->reference&id=$data->id'>";
-                    if($data->stopLoss)
-                        $googleTableRows[$i]->c[$j]->v .= "stop-loss:".money_format('%i', $data->stopLoss);
-                    if($data->takeProfit)
-                        $googleTableRows[$i]->c[$j]->v .= " take-profit:".money_format('%i', $data->takeProfit);
+            
+            if($data->scalp != 'none') {
+                $googleTableRows[$i]->c[$j]->v = "<a href='index.php?cancelScalp=$data->reference&id=$data->id'>";
+                if($data->stopLoss)
+                    $googleTableRows[$i]->c[$j]->v .= "stop-loss:".money_format('%i', $data->stopLoss);
+                if($data->takeProfit)
+                    $googleTableRows[$i]->c[$j]->v .= " take-profit:".money_format('%i', $data->takeProfit);
 
-                    $googleTableRows[$i]->c[$j]->v .= "</a>";
-                }
+                $googleTableRows[$i]->c[$j]->v .= "</a>";
             }
+        }
 
+        // Gain calculation
+        if($data->type != 'position') {
             $prev->status = $data->status;
             $prev->action = $data->orderAction;
             $prev->id = $data->id;
