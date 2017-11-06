@@ -200,6 +200,8 @@ class Ledger {
         
         $query = "UPDATE trade_ledger SET updateDate = NOW()";
         
+        if($this->reference)
+            $query .= ", reference = '".$this->db->real_escape_string($this->reference)."'";
         if($this->description)
             $query .= ", description = '".$this->db->real_escape_string($this->description)."'";
         if($this->volume_executed)

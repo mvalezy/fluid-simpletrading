@@ -110,6 +110,7 @@ if(is_array($Ledger->List) && count($Ledger->List) > 0) {
    foreach($Ledger->List as $id => $detail) {
         echo $Logger->log('WARNING', "position=sell $detail->volume-$price($id)", 'Ledger');
 
+        $Ledger->reference       = "none";
         $Ledger->description     = "$detail->orderAction $detail->volume $detail->pair @ position $detail->price";
         $Ledger->volume_executed = $detail->volume;
         $Ledger->price_executed  = $detail->price;

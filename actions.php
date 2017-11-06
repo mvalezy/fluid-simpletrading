@@ -136,9 +136,22 @@ else {
      */
 
     if($cancel) {
-
-        if($cancel != 'SIMULATOR') {
-
+        if($cancel == 'SIMULATOR') {
+            $message[] = $Logger->log('INFO', "Canceled simulator Order $cancel ($id)", 'cancelOrder', 'success');
+            
+            // Cancel by ID for Simulator
+            $Ledger = new Ledger();
+            $Ledger->cancel($id);
+                        
+        }
+        elseif($cancel == 'none') {
+            $message[] = $Logger->log('INFO', "Canceled Position Order ($id)", 'cancelOrder', 'success');
+            
+            // Cancel by ID for Simulator
+            $Ledger = new Ledger();
+            $Ledger->cancel($id);
+        }
+        else {
             // Cancel by Reference
             $Exchange = new Exchange();
 
@@ -151,13 +164,6 @@ else {
             else {
                 $message[] = $Logger->log('ERROR', $Exchange->Error, 'cancelOrder', 'danger');
             }
-        }
-        else {
-            $message[] = $Logger->log('INFO', "Canceled simulator Order $cancel ($id)", 'cancelOrder', 'success');
-
-            // Cancel by ID for Simulator
-            $Ledger = new Ledger();
-            $Ledger->cancel($id);
         }
     }
     elseif($cancelScalp) {
