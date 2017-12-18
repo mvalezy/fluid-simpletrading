@@ -17,10 +17,10 @@ namespace Payward;
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -103,10 +103,10 @@ class KrakenAPI
         $i=0;
         while ($i++ < TRADE_CURL_EXEC_RETRY_MAX) {
             $result = curl_exec($this->curl);
-            
+
             if($result===false) {
                 if ($i < TRADE_CURL_EXEC_RETRY_MAX) { sleep($i+3); }
-                else 
+                else
                     throw new KrakenAPIException('CURL error: ' . curl_error($this->curl));
             }
             else {
@@ -168,13 +168,13 @@ class KrakenAPI
             $i=0;
             while ($i++ < TRADE_CURL_EXEC_RETRY_MAX) {
                 $result = curl_exec($this->curl);
-                
+
                 if($result===false) {
                     if ($i < TRADE_CURL_EXEC_RETRY_MAX) { sleep($i+3); }
-                    else 
+                    else
                         throw new KrakenAPIException('CURL error: ' . curl_error($this->curl));
                 }
-                else 
+                else
                     break;
             }
         }
