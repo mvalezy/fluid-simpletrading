@@ -138,15 +138,22 @@ else {
     if($cancel) {
         if($cancel == 'SIMULATOR') {
             $message[] = $Logger->log('INFO', "Canceled simulator Order $cancel ($id)", 'cancelOrder', 'success');
-            
+
             // Cancel by ID for Simulator
             $Ledger = new Ledger();
             $Ledger->cancel($id);
-                        
+
+        }
+        elseif($cancel == 'new') {
+            $message[] = $Logger->log('INFO', "Canceled New Order ($id)", 'cancelOrder', 'success');
+
+            // Cancel by ID for New Orders without Reference
+            $Ledger = new Ledger();
+            $Ledger->cancel($id);
         }
         elseif($cancel == 'position') {
             $message[] = $Logger->log('INFO', "Canceled Position Order ($id)", 'cancelOrder', 'success');
-            
+
             // Cancel by ID for Simulator
             $Ledger = new Ledger();
             $Ledger->cancel($id);
