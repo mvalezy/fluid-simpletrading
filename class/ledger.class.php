@@ -6,7 +6,7 @@
 */
 
 class Ledger {
-   
+
     /* CONFIG STRINGS */
     private $db;
     public $exchange;
@@ -47,7 +47,7 @@ class Ledger {
     /* OBJECTS */
     public $List;
 
-    
+
     public function __construct($alert = TRADE_ALERT, $exchange = TRADE_EXCHANGE, $pair = TRADE_PAIR) {
         global $db;
         $this->db = $db;
@@ -80,7 +80,7 @@ class Ledger {
     }
 
     public function round() {
-        $this->volume       = round($this->volume-0.0001, 4, PHP_ROUND_HALF_DOWN);
+        $this->volume       = round($this->volume-0.001, 4, PHP_ROUND_HALF_DOWN);
         $this->price        = round($this->price, 3);
         $this->total        = round($this->total, 3);
         $this->takeProfit   = round($this->takeProfit, 3);
@@ -101,10 +101,10 @@ class Ledger {
 
         if($this->reference)
             $query_ins .= ", reference = '$this->reference'";
-		
+
         if($this->parentid)
             $query_ins .= ", parentid = $this->parentid";
-        
+
         if($this->takeProfit_active == 1)
             $query_ins .= ", takeProfit = '$this->takeProfit'";
 
@@ -136,34 +136,33 @@ class Ledger {
     }
 
     public function updateReference($id) {
-        
+
         $query = "UPDATE trade_ledger SET reference = '".$this->db->real_escape_string($this->reference)."' WHERE id = $id LIMIT 1;";
 
         $sql = $this->db->query($query);
-        mysqlerr($this->db, $query);        
+        mysqlerr($this->db, $query);
     }
-	
-	
+
     public function correctCanceledOrder() {
 
             if(is_array($this->trades) && count($this->trades)) {
                 $this->trades       = json_encode($this->trades);
             }
-        
+
         if($this->status == 'canceled'
             && $this->volume_executed > 0
             && $this->price_executed > 0)
             $this->status = 'closed';
-        
+
     }
 
 
     public function updateByReference($reference) {
-			
+
 		$this->correctCanceledOrder();
-        
+
         $query = "UPDATE trade_ledger SET updateDate = NOW()";
-        
+
         if($this->description)
             $query .= ", description = '".$this->db->real_escape_string($this->description)."'";
         if($this->volume_executed)
@@ -181,11 +180,11 @@ class Ledger {
         if($this->status != 'open') {
             $query .= ", closeDate = NOW()";
         }
-        
+
         $query .= " WHERE reference = '".$this->db->real_escape_string($reference)."' LIMIT 1;";
 
         $sql = $this->db->query($query);
-        mysqlerr($this->db, $query);        
+        mysqlerr($this->db, $query);
 
         // SEND Immediate Alert
         if($this->alert && $this->status != 'open') {
@@ -197,9 +196,9 @@ class Ledger {
     }
 
     public function update($id) {
-        
+
         $query = "UPDATE trade_ledger SET updateDate = NOW()";
-        
+
         if($this->reference)
             $query .= ", reference = '".$this->db->real_escape_string($this->reference)."'";
         if($this->description)
@@ -219,11 +218,11 @@ class Ledger {
         if($this->status != 'open') {
             $query .= ", closeDate = NOW()";
         }
-        
+
         $query .= " WHERE id = ".$this->db->real_escape_string($id)." LIMIT 1;";
 
         $sql = $this->db->query($query);
-        mysqlerr($this->db, $query);        
+        mysqlerr($this->db, $query);
 
         // SEND Immediate Alert
         if($this->alert && $this->status != 'open') {
@@ -232,52 +231,52 @@ class Ledger {
             $Alert->add('now', $this->price_executed);
             $Alert->send($Alert->id, $this->price_executed);
         }
-    }    
+    }
 
     public function cancelByReference($reference) {
-        
+
         $query = "UPDATE trade_ledger SET updateDate = NOW(), closeDate = NOW(), status = 'canceled' WHERE reference = '".$this->db->real_escape_string($reference)."' LIMIT 1;";
 
         $sql = $this->db->query($query);
-        mysqlerr($this->db, $query);        
+        mysqlerr($this->db, $query);
     }
 
     public function cancel($id) {
-        
+
         $query = "UPDATE trade_ledger SET updateDate = NOW(), closeDate = NOW(), status = 'canceled' WHERE id = ".$this->db->real_escape_string($id)." LIMIT 1;";
 
         $sql = $this->db->query($query);
-        mysqlerr($this->db, $query);        
-    }  
-    
+        mysqlerr($this->db, $query);
+    }
+
     public function cancelScalp($id) {
-        
+
         $query = "UPDATE trade_ledger SET updateDate = NOW(), scalp = 'none' WHERE id = ".$this->db->real_escape_string($id)." LIMIT 1;";
 
         $sql = $this->db->query($query);
-        mysqlerr($this->db, $query);        
-    }   
+        mysqlerr($this->db, $query);
+    }
 
     public function close($id, $price) {
-        
+
         $query = "UPDATE trade_ledger SET status = 'closed', closeDate = NOW() WHERE id = $id LIMIT 1;";
 
         $sql = $this->db->query($query);
-        mysqlerr($this->db, $query);       
+        mysqlerr($this->db, $query);
     }
 
     public function closeScalp($id) {
-         
+
         $query = "UPDATE trade_ledger SET scalp = 'closed' WHERE id = $id LIMIT 1;";
 
         $sql = $this->db->query($query);
         mysqlerr($this->db, $query);
-        
+
     }
 
     public function select($limit = 20) {
         $query = "SELECT * FROM trade_ledger ORDER BY addDate DESC LIMIT $limit;";
-        
+
         $sql = $this->db->query($query);
         mysqlerr($this->db, $query);
 
@@ -290,11 +289,11 @@ class Ledger {
         }
         else
             return false;
-    }    
+    }
 
     public function selectOpen($limit = 10) {
         $query = "SELECT * FROM trade_ledger WHERE status = 'open' ORDER BY addDate DESC LIMIT $limit;";
-        
+
         $sql = $this->db->query($query);
         mysqlerr($this->db, $query);
 
@@ -307,11 +306,11 @@ class Ledger {
         }
         else
             return false;
-    }    
+    }
 
     public function selectClosed($limit = 10) {
         $query = "SELECT * FROM trade_ledger WHERE status != 'open' ORDER BY closeDate DESC LIMIT $limit;";
-        
+
         $sql = $this->db->query($query);
         mysqlerr($this->db, $query);
 
@@ -324,11 +323,11 @@ class Ledger {
         }
         else
             return false;
-    }    
+    }
 
     public function selectRefresh($limit = 10) {
         $query = "SELECT * FROM trade_ledger WHERE type != 'position' AND status = 'open' AND reference IS NOT NULL AND reference != 'SIMULATOR' ORDER BY addDate ASC LIMIT $limit;";
-        
+
         $sql = $this->db->query($query);
         mysqlerr($this->db, $query);
 
@@ -345,11 +344,11 @@ class Ledger {
 
 
     public function selectScalp($price) {
-        $query = "SELECT * FROM trade_ledger WHERE orderAction = 'buy' AND status = 'closed' AND scalp = 'pending' AND ( 
+        $query = "SELECT * FROM trade_ledger WHERE orderAction = 'buy' AND status = 'closed' AND scalp = 'pending' AND (
             (orderAction = 'buy' AND takeProfit IS NOT NULL AND takeProfit < $price) OR
             (orderAction = 'buy' AND stopLoss   IS NOT NULL AND stopLoss   > $price)
-            );";        
-        
+            );";
+
         $sql = $this->db->query($query);
         mysqlerr($this->db, $query);
 
@@ -363,11 +362,11 @@ class Ledger {
 
 
     public function selectPosition($price) {
-        $query = "SELECT * FROM trade_ledger WHERE type = 'position' AND status = 'open' AND ( 
+        $query = "SELECT * FROM trade_ledger WHERE type = 'position' AND status = 'open' AND (
             (orderAction = 'buy' AND price < $price) OR
             (orderAction = 'sell' AND price > $price)
-            );";        
-        
+            );";
+
         $sql = $this->db->query($query);
         mysqlerr($this->db, $query);
 
@@ -382,7 +381,7 @@ class Ledger {
 
     public function selectEmptyReference($limit = 2) {
         $query = "SELECT * FROM trade_ledger WHERE type != 'position' AND reference IS NULL ORDER BY addDate DESC LIMIT $limit;";
-        
+
         $sql = $this->db->query($query);
         mysqlerr($this->db, $query);
 
