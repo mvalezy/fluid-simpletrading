@@ -6,7 +6,7 @@
 */
 
 class Alert {
-   
+
     /* DB */
     private $db;
 
@@ -33,7 +33,7 @@ class Alert {
     public $List;
     public $API;
 
-    
+
     public function __construct($ledgerid = 0, $userid = TRADE_USER, $exchange = TRADE_EXCHANGE, $pair = TRADE_PAIR, $threshold = TRADE_ALERT_THRESHOLD, $snooze = TRADE_ALERT_SNOOZE, $websitename = TRADE_WEBSITE_NAME) {
         global $db;
         $this->db = $db;
@@ -48,11 +48,11 @@ class Alert {
         $this->websitename = $websitename;
 
         $this->ledgerid = $ledgerid;
-        
+
     }
 
     public function send($id, $price = 0, $comment = '') {
-        
+
         if(isset($this->List[$id])) {
             $this->id           = $id;
             $this->price        = $this->List[$id]->price;
@@ -67,7 +67,7 @@ class Alert {
 
         $this->API              = new Notify();
         $this->API->url         = TRADE_WEBSITE_URL;
-        $this->API->priority    = $this->priority;      
+        $this->API->priority    = $this->priority;
 
         switch($this->operator) {
 
@@ -109,7 +109,7 @@ class Alert {
             $price = round($price, 1);
             $this->API->description .= ". Current price ".money_format('%i', $price);
         }
-  
+
         // Send Email notification
         $User = new User();
         if($User->get($this->userid)) {
@@ -121,10 +121,10 @@ class Alert {
             mail($User->email, $this->API->event, $this->API->description, $header);
         }
 
-  
+
         // Send Mobile notification
         if($this->API->post()) {
-  
+
             // UPDATE current Alert
             $query = "UPDATE trade_alert SET status = 'sent', closeDate = NOW(), remaining = ".$this->API->remaining.", resettimer = ".$this->API->resettimer."  WHERE id = $id LIMIT 1;";
 
@@ -134,7 +134,7 @@ class Alert {
             // Archive other Ledger Alerts
             if(@$this->ledgerid) {
                 $query = "UPDATE trade_alert SET status = 'ignored', closeDate = NOW() WHERE id != $id AND ledgerid = $this->ledgerid;";
-                
+
                 $sql = $this->db->query($query);
                 mysqlerr($this->db, $query);
             }
@@ -151,7 +151,7 @@ class Alert {
                 break;
             case '<':
                 $operator = 'less';
-                break; 
+                break;
             case '=':
                 $operator = 'even';
                 break;
@@ -166,7 +166,7 @@ class Alert {
         if(isset($this->ledgerid) && $this->ledgerid > 0) {
             $query_ins .= ", ledgerid = $this->ledgerid";
         }
-        
+
         $sql_ins = $this->db->query($query_ins);
         mysqlerr($this->db, $query_ins);
 
@@ -184,7 +184,7 @@ class Alert {
                 (operator = 'now')
             )";
         $query .= ";";
-        
+
         $sql = $this->db->query($query);
         mysqlerr($this->db, $query);
 
@@ -195,7 +195,7 @@ class Alert {
              }
         }
     }
-    
+
 
     public function get($id) {
         $query = "SELECT * FROM trade_alert WHERE id = '$id';";
@@ -215,17 +215,17 @@ class Alert {
     public function snooze($operator) {
 
         $date = time() - $this->snooze;
-        
+
         $query = "SELECT id FROM trade_alert WHERE operator = '".$this->db->real_escape_string($operator)."' AND status = 'sent' AND addDate > '".$this->db->real_escape_string(date('Y-m-d H:m:i', $date))."' ORDER BY addDate ASC LIMIT 1;";
-        
+
         $sql = $this->db->query($query);
         mysqlerr($this->db, $query);
 
-        if(isset($sql->num_rows) && $sql->num_rows > 0) 
+        if(isset($sql->num_rows) && $sql->num_rows > 0)
             return false;
-        
+
         return true;
-    }  
+    }
 
 }
 

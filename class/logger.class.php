@@ -6,7 +6,7 @@
 */
 
 class Logger {
-   
+
     /* DB STRINGS */
     public $message;
     public $file;
@@ -14,30 +14,30 @@ class Logger {
     public $format;
 
     public $css;
-	
+
     private $rep;
     private $filename;
     private $fp;
-    
+
     public function __construct($filename, $display = 0, $format = 'text', $rep = TRADE_LOG_REP) {
-        
+
         $this->rep      = $rep;
         $this->filename = $filename;
         $this->file     = $this->rep . $this->filename.'.log';
-        
-        
+
         $this->display  = $display;
         $this->format   = $format;
 
         $this->archive();
+        $this->open();
     }
-      
-      
+
+
     public function open() {
         $this->fp = fopen($this->file, "a+");
     }
 
-	
+
     public function close() {
         fclose($this->fp);
     }
@@ -62,7 +62,7 @@ class Logger {
         $this->message .= "\r\n";
     }
 
-	
+
     public function log($level, $message, $script = '', $css = 'info') {
 
         if(!is_resource($this->fp))
@@ -71,13 +71,13 @@ class Logger {
         $this->getMessage($message, $script);
 
         fwrite($this->fp, date('Y-m-d H:i:s') . " - $level - $this->message");
-        
+
         if($this->display) {
             return $this->display($css);
         }
     }
 
-	
+
 	public function display($css = 'info', $message = '', $script = '') {
 
         if($message)

@@ -25,31 +25,13 @@ $Logger = new Logger('pulse', 1);
 
 /*
  * PULSE
- * Recommended cycle : 1 min
+ * Get Last Ticket Price
  */
 
-if(TRADE_SIMULATOR_ONLY) {
-    $History = new History();
-    $price = $History->getLast();
-    echo $Logger->log('INFO', "Fixed price at $price", 'Simulator');
-}
+$History = new History();
+$price = $History->getLast();
+echo $Logger->log('INFO', "Query last price at $price", 'Pulse');
 
-/*
- * TICKER
- * QUERY Current Price
- */
-if(!$price) {
-    $Exchange = new Exchange();
-    if($Exchange->Ticker() === true) {
-        $price = $Exchange->price;
-
-        echo $Logger->log('INFO', TRADE_PAIR."=$price", 'Ticker');
-
-        $History = new History();
-        $History->add($price);
-        $lastTick = $History->id;
-    }
-}
 
 /*
  * ALERT
@@ -62,42 +44,48 @@ $Alert->select($price);
 if(is_array($Alert->List) && count($Alert->List) > 0) {
     foreach($Alert->List as $id => $detail) {
         echo $Logger->log('INFO', "send=$detail->price($id)", 'Alert');
-        
+
         $Alert->send($id, $price);
     }
 }
 
 /*
- * LEDGER
- * BUY / SELL at StopLoss or TakeProfit
+ * CLOSE ORDER
+ * Get Transaction details and fill interesting data (status, exec)
  */
- $Ledger = new Ledger();
- $Ledger->selectScalp($price);
- 
- if(is_array($Ledger->List) && count($Ledger->List) > 0) {
+$Ledger = new Ledger();
+if($Ledger->selectRefresh(3) === true) {
+    $ReferenceList = array();
     foreach($Ledger->List as $id => $detail) {
-        echo $Logger->log('WARNING', "scalp=sell $detail->volume-$price($id)", 'Ledger');
+        echo $Logger->log('INFO', "openOrders= $detail->reference($id)", 'Ledger');
+        $ReferenceList[] = $detail->reference;
+    }
 
-        $Ledger->closeScalp($id);
-
-        $Ledger->parentid       = $id;
-        $Ledger->orderAction    = 'sell';
-        $Ledger->type           = 'market';
-        $Ledger->price          = $price;
-        $Ledger->volume         = $detail->volume;
-        $Ledger->total          = $Ledger->price * $Ledger->volume;
-
-        $Ledger->round();
-        $Ledger->add();
+    if(count($ReferenceList)) {
 
         $Exchange = new Exchange();
-        if($Exchange->AddOrder($Ledger->id) === true) {
-            // STORE Reference of Last Order
-            $Ledger->reference = $Exchange->reference;
-            $Ledger->updateReference($Ledger->id);
+        if($Exchange->QueryOrders(0, $ReferenceList) === true) {
+
+            if($debug)
+                krumo($Exchange);
+
+            foreach($Exchange->List as $reference => $detail) {
+                echo $Logger->log('INFO', "updateByReference= $reference", 'Ledger');
+
+                $Ledger->status       = $detail->status;
+                $Ledger->description  = $detail->description;
+                $Ledger->volume_executed = $detail->volume;
+                $Ledger->price_executed = $detail->price;
+                $Ledger->cost         = $detail->cost;
+                $Ledger->fee          = $detail->fee;
+                $Ledger->trades       = $detail->trades;
+
+                $Ledger->updateByReference($reference);
+            }
         }
     }
 }
+
 
 /*
  * LEDGER
@@ -138,88 +126,38 @@ if(is_array($Ledger->List) && count($Ledger->List) > 0) {
     }
 }
 
+
 /*
- * FIND ORDER
- * Fill reference on Ledger in case of timeout
+ * LEDGER
+ * BUY / SELL at StopLoss or TakeProfit
  */
 $Ledger = new Ledger();
-if($Ledger->selectEmptyReference() === true) {
-    foreach($Ledger->List as $id => $detail) {
-        echo $Logger->log('WARNING', "emptyReference= $detail->orderAction-$detail->type-$detail->volume-$detail->price($id)", 'Ledger');
+$Ledger->selectScalp($price);
 
-        // 1- ORDER FOUND on Exchange > Update Reference
-        $Exchange = new Exchange();
-        if($Exchange->searchOrder($detail->addDate, $detail->orderAction, $detail->type, $detail->volume, $detail->price) === true) {
-            echo $Logger->log('WARNING', "foundOrder= $Exchange->reference", 'Exchange');
-             // STORE Reference of Last Order
-             $Ledger->reference = $Exchange->reference;
-             $Ledger->updateReference($id);
-        }
+if(is_array($Ledger->List) && count($Ledger->List) > 0) {
+   foreach($Ledger->List as $id => $detail) {
+       echo $Logger->log('WARNING', "scalp=sell $detail->volume-$price($id)", 'Ledger');
 
+       $Ledger->closeScalp($id);
 
-        // 2- ORDER NOT FOUND on Exchange > Retry Order
-        else {
-            
-            // RETRY only if Order is 30 seconds Old
-            $addDate = strtotime($detail->addDate);
-            $time = time()-30;
+       $Ledger->parentid       = $id;
+       $Ledger->orderAction    = 'sell';
+       $Ledger->type           = 'market';
+       $Ledger->price          = $price;
+       $Ledger->volume         = $detail->volume;
+       $Ledger->total          = $Ledger->price * $Ledger->volume;
 
-            if($addDate < $time) {
-                // RETRY ORDER
-                if($Exchange->AddOrder($id) === true) {
-                    echo $Logger->log('WARNING', "createdOrder= $detail->volume-$detail->price($id)", 'Ledger');
-                    // STORE Reference of Last Order
-                    $Ledger->reference = $Exchange->reference;
-                    $Ledger->updateReference($id);
-                }
-            }
-        }
-    }
+       $Ledger->round();
+       $Ledger->add();
+
+       $Exchange = new Exchange();
+       if($Exchange->AddOrder($Ledger->id) === true) {
+           // STORE Reference of Last Order
+           $Ledger->reference = $Exchange->reference;
+           $Ledger->updateReference($Ledger->id);
+       }
+   }
 }
-
-/*
- * CLOSE ORDER
- * Get Transaction details and fill interesting data (status, exec)
- */
-$Ledger = new Ledger();
-if($Ledger->selectRefresh(3) === true) {
-    $ReferenceList = array();
-    foreach($Ledger->List as $id => $detail) {
-        echo $Logger->log('INFO', "openOrders= $detail->reference($id)", 'Ledger');
-        $ReferenceList[] = $detail->reference;
-    }
-  
-    if(count($ReferenceList)) {
-  
-        $Exchange = new Exchange();
-        if($Exchange->QueryOrders(0, $ReferenceList) === true) {
-
-            if($debug)
-                krumo($Exchange);
-
-            foreach($Exchange->List as $reference => $detail) {
-                echo $Logger->log('INFO', "updateByReference= $reference", 'Ledger');
-
-                $Ledger->status       = $detail->status;
-                $Ledger->description  = $detail->description;
-                $Ledger->volume_executed = $detail->volume;
-                $Ledger->price_executed = $detail->price;
-                $Ledger->cost         = $detail->cost;
-                $Ledger->fee          = $detail->fee;
-                $Ledger->trades       = $detail->trades;
-
-                $Ledger->updateByReference($reference);
-            }
-        } 
-    }
-}
- 
-
-
-/*
- * AUTOMATIC ORDER
- * STOP-LOSS / TAKE-PROFIT
- */
 
 
 
@@ -252,7 +190,7 @@ if(TRADE_ALERT && TRADE_ALERT_AUTOMATIC) {
                 }
                 else
                     echo $Logger->log('INFO', "snooze $range - ".round($min,4)."< >".round($max,4), 'Alert');
-                    
+
                 $sent = 1;
             }
         }

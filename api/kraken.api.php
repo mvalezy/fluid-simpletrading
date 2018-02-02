@@ -8,7 +8,7 @@ require_once('client/KrakenAPIClient.php');
 
 class Exchange {
 
-	
+
 	/* CONFIG STRINGS */
 	public $debug;
     public $exchange;
@@ -25,7 +25,7 @@ class Exchange {
 	public $cost;
 	public $fee;
 	public $trades;
-	
+
 
 
     /* OBJECTS */
@@ -33,25 +33,25 @@ class Exchange {
     public $Ledger;
     public $Error;
     public $Success;
-	
+
 	public $Balance;
 	public $OpenOrders;
 	public $List;
-	
+
 	public $ReferenceList;
 
-    
+
     public function __construct($key = EXCHANGE_API_KEY, $secret = EXCHANGE_API_SECRET, $exchange = TRADE_EXCHANGE, $pair = TRADE_PAIR, $simulatorOnly = TRADE_SIMULATOR_ONLY) {
 		global $debug;
 		$this->debug = $debug;
-		
+
 		$this->exchange = $exchange;
 		$this->pair     = $pair;
-		
+
 		$this->simulatorOnly = $simulatorOnly;
 
         // set which platform to use (beta or standard)
-        $beta = false; 
+        $beta = false;
         $url = $beta ? 'https://api.beta.kraken.com' : 'https://api.kraken.com';
         $sslverify = $beta ? false : true;
         $version = 0;
@@ -63,8 +63,8 @@ class Exchange {
 
 		if($this->simulatorOnly) {
 			$this->reference  = 'SIMULATOR';
-            $this->Success = 'Simulator order posted';
-            return true;
+			$this->Success = 'Simulator order posted';
+			return true;
 		}
 
         $this->Ledger = new Ledger();
@@ -79,16 +79,16 @@ class Exchange {
 
         $parameters = array(
             'pair'      => TRADE_PAIR,
-            'type'      => $this->Ledger->orderAction, 
+            'type'      => $this->Ledger->orderAction,
             'oflags'    => $this->oflags,
 
-            'ordertype' => $this->Ledger->type, 
+            'ordertype' => $this->Ledger->type,
             'volume'    => $this->Ledger->volume,
             'price'     => $this->Ledger->price,
             'userref' 	=> strtotime($this->Ledger->addDate), //$this->Ledger->id,
 		);
-		
-		
+
+
 		if($this->debug)
 			krumo($parameters);
 
@@ -121,13 +121,13 @@ class Exchange {
 		if($this->simulatorOnly) {
             return false;
 		}
-		
+
 		/*
 		SCENARII
 		timeout > order created 		> retrieve reference from open/closed
 				> order not created		> create again
 		*/
-		
+
 
 		$userref = strtotime($addDate);
 
@@ -136,7 +136,7 @@ class Exchange {
 		$Response = $this->API->QueryPrivate('OpenOrders', array('trades' => true));
 		if($this->debug)
 			krumo($Response);
-		
+
 		if(isset($Response['error']) && is_array($Response['error']) && count($Response['error']) > 0) {
 			echo $Response['error'];
 			return false;
@@ -155,7 +155,7 @@ class Exchange {
 						if($price && $type == 'limit')
 							if(floatval($result['descr']['price']) != floatval($price))
 								$found = 0;
-						
+
 						if($found == 1) {
 							$this->reference = $reference;
 							return true;
@@ -179,7 +179,7 @@ class Exchange {
 		$Response = $this->API->QueryPrivate('ClosedOrders', $parameters);
 		if($this->debug)
 			krumo($Response);
-		
+
 		if(isset($Response['error']) && is_array($Response['error']) && count($Response['error']) > 0) {
 			echo $Response['error'];
 			return false;
@@ -198,7 +198,7 @@ class Exchange {
 						if($price && $type == 'limit')
 							if(floatval($result['descr']['price']) != floatval($price))
 								$found = 0;
-						
+
 						if($found == 1) {
 							$this->reference = $reference;
 							return true;
@@ -217,7 +217,7 @@ class Exchange {
     public function QueryOrders($ledgerid = 0, $ReferenceList = array()) {
 
 		$this->List = array();
-		
+
 		$parameters = array(
             'trades' => true
 		);
@@ -228,20 +228,20 @@ class Exchange {
 
 			$parameters['userref'] = strtotime($this->Ledger->addDate); //$this->Ledger->id;
 			$parameters['txid'] = $this->reference= $this->Ledger->reference;
-			
+
 		}
 		elseif(count($ReferenceList)) {
 			$parameters['txid'] = $this->ReferenceList = implode(',', $ReferenceList);
 		}
-			
+
 
 		if($this->debug)
 			krumo($parameters);
-		
+
 		$Response = $this->API->QueryPrivate('QueryOrders', $parameters);
 		if($this->debug)
 			krumo($Response);
-		
+
 		if(isset($Response['error']) && is_array($Response['error']) && count($Response['error']) > 0) {
 			echo $Response['error'];
 			return false;
@@ -261,18 +261,18 @@ class Exchange {
 			}
 			return true;
 		}
-		
+
 		// NOT FOUND
 		return false;
 	}
 
 
 	public function openOrders() {
-		
+
 		$Response = $this->API->QueryPrivate('OpenOrders', array('trades' => true));
 		if($this->debug)
 			krumo($Response);
-		
+
 		if(isset($Response['error']) && is_array($Response['error']) && count($Response['error']) > 0) {
 			$this->Error = '';
 			foreach($Response['error'] as $message) {
@@ -302,7 +302,7 @@ class Exchange {
 		}
 		else
 			$this->reference = $reference;
-		
+
 		$Response = $this->API->QueryPrivate('CancelOrder', array('txid' => $this->reference));
 		if($this->debug)
 			krumo($Response);
@@ -328,7 +328,7 @@ class Exchange {
 
 
 	public function ticker() {
-		
+
 		$Response = $this->API->QueryPublic('Ticker', array('pair' => $this->pair));
 		if($this->debug)
 			krumo($Response);
@@ -357,7 +357,7 @@ class Exchange {
 
 
 	public function balance() {
-		
+
 		$Response = $this->API->QueryPrivate('Balance');
 		if($this->debug)
 			krumo($Response);
