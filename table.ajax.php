@@ -4,6 +4,8 @@ header('Access-Control-Allow-Methods: GET');
 
 require('depedencies.inc.php');
 
+setlocale(LC_MONETARY, 'fr_FR.UTF-8');
+
 
 // Query Data
 if(isset($_GET['debug']) && $_GET['debug'] > 0) { $debug = (int) $_GET['debug']; }
@@ -126,12 +128,12 @@ if(isset($Ledger->List) && is_array($Ledger->List) && count($Ledger->List) > 0) 
             // Price
             $j++; $googleTableRows[$i]->c[$j] = new stdClass();
             $googleTableRows[$i]->c[$j]->v = $data->price_executed;
-            $googleTableRows[$i]->c[$j]->f = money_format('%i', $data->price_executed);
+            $googleTableRows[$i]->c[$j]->f = money_format('%(#1n', $data->price_executed);
 
             // Total
             $j++; $googleTableRows[$i]->c[$j] = new stdClass();
             $googleTableRows[$i]->c[$j]->v = $data->cost;
-            $googleTableRows[$i]->c[$j]->f = money_format('%i', $data->cost);
+            $googleTableRows[$i]->c[$j]->f = money_format('%(#1n', $data->cost);
 
             // Gain if limit / market
             if($data->type != 'position') {
@@ -139,7 +141,7 @@ if(isset($Ledger->List) && is_array($Ledger->List) && count($Ledger->List) > 0) 
                     $j++; $googleTableRows[$i]->c[$j] = new stdClass();
                     $gain = $data->cost - $prev->cost - $data->fee - $prev->fee;
                     $googleTableRows[$i]->c[$j]->v = $gain;
-                    $googleTableRows[$i]->c[$j]->f = money_format('%i', $gain);
+                    $googleTableRows[$i]->c[$j]->f = money_format('%(#1n', $gain);
                     $prev->cost = 0;
                     $prev->fee  = 0;
                 }
@@ -148,7 +150,7 @@ if(isset($Ledger->List) && is_array($Ledger->List) && count($Ledger->List) > 0) 
                     $j++; $googleTableRows[$i]->c[$j] = new stdClass();
                     $gain = $data->cost - $prev->cost - $data->fee - $prev->fee + $googleTableRows[$previ]->c[$j]->v;
                     $googleTableRows[$i]->c[$j]->v = $gain;
-                    $googleTableRows[$i]->c[$j]->f = money_format('%i', $gain);
+                    $googleTableRows[$i]->c[$j]->f = money_format('%(#1n', $gain);
                     $prev->cost = 0;
                     $prev->fee  = 0;
 
@@ -176,12 +178,12 @@ if(isset($Ledger->List) && is_array($Ledger->List) && count($Ledger->List) > 0) 
             // Price
             $j++; $googleTableRows[$i]->c[$j] = new stdClass();
             $googleTableRows[$i]->c[$j]->v = $data->price;
-            $googleTableRows[$i]->c[$j]->f = money_format('%i', $data->price);
+            $googleTableRows[$i]->c[$j]->f = money_format('%(#1n', $data->price);
 
             // Total
             $j++; $googleTableRows[$i]->c[$j] = new stdClass();
             $googleTableRows[$i]->c[$j]->v = $data->total;
-            $googleTableRows[$i]->c[$j]->f = money_format('%i', $data->total);
+            $googleTableRows[$i]->c[$j]->f = money_format('%(#1n', $data->total);
 
             // Gain / Cancel
             $j++; $googleTableRows[$i]->c[$j] = new stdClass();
@@ -206,12 +208,12 @@ if(isset($Ledger->List) && is_array($Ledger->List) && count($Ledger->List) > 0) 
         if($data->status != 'canceled') {
             $j++; $googleTableRows[$i]->c[$j] = new stdClass();
 
-            if($data->scalp != 'none') {
+            if($data->scalp == 'pending') {
                 $googleTableRows[$i]->c[$j]->v = "<a href='index.php?cancelScalp=$data->reference&id=$data->id'>";
                 if($data->stopLoss)
-                    $googleTableRows[$i]->c[$j]->v .= "stop-loss:".money_format('%i', $data->stopLoss);
+                    $googleTableRows[$i]->c[$j]->v .= "stop-loss:".money_format('%(#1n', $data->stopLoss);
                 if($data->takeProfit)
-                    $googleTableRows[$i]->c[$j]->v .= " take-profit:".money_format('%i', $data->takeProfit);
+                    $googleTableRows[$i]->c[$j]->v .= " take-profit:".money_format('%(#1n', $data->takeProfit);
 
                 $googleTableRows[$i]->c[$j]->v .= "</a>";
             }

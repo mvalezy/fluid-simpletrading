@@ -235,7 +235,7 @@ class Ledger {
 
     public function cancelByReference($reference) {
 
-        $query = "UPDATE trade_ledger SET updateDate = NOW(), closeDate = NOW(), status = 'canceled' WHERE reference = '".$this->db->real_escape_string($reference)."' LIMIT 1;";
+        $query = "UPDATE trade_ledger SET updateDate = NOW(), closeDate = NOW(), status = 'canceled', scalp = 'none' WHERE reference = '".$this->db->real_escape_string($reference)."' LIMIT 1;";
 
         $sql = $this->db->query($query);
         mysqlerr($this->db, $query);
@@ -243,7 +243,7 @@ class Ledger {
 
     public function cancel($id) {
 
-        $query = "UPDATE trade_ledger SET updateDate = NOW(), closeDate = NOW(), status = 'canceled' WHERE id = ".$this->db->real_escape_string($id)." LIMIT 1;";
+        $query = "UPDATE trade_ledger SET updateDate = NOW(), closeDate = NOW(), status = 'canceled', scalp = 'none' WHERE id = ".$this->db->real_escape_string($id)." LIMIT 1;";
 
         $sql = $this->db->query($query);
         mysqlerr($this->db, $query);

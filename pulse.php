@@ -18,7 +18,10 @@ else $price = 0;
 /*
  * CRON CONFIG
  * 30 seconds
- * * * * * * /usr/bin/php6 /kunden/homepages/23/d202161969/htdocs/.../pulse.php > /kunden/homepages/23/d202161969/htdocs/.../log/cron.log 2>&1
+ * * * * * /usr/bin/php6 /kunden/homepages/23/d202161969/htdocs/client/simpletrading/pulse.ticker.php > /kunden/homepages/23/d202161969/htdocs/client/simpletrading/log/cron_pulse.log 2>&1
+ * * * * * /usr/bin/php6 /kunden/homepages/23/d202161969/htdocs/client/simpletrading/pulse.php > /kunden/homepages/23/d202161969/htdocs/client/simpletrading/log/cron_pulse.log 2>&1
+ * * * * * (sleep 30; /usr/bin/php6 /kunden/homepages/23/d202161969/htdocs/client/simpletrading/pulse.findOrder.php > /kunden/homepages/23/d202161969/htdocs/client/simpletrading/log/cron_findOrder.log 2>&1)
+ * * * * * /usr/bin/php6 /kunden/homepages/23/d202161969/htdocs/client/simpletrading/pulse.findOrder.php > /kunden/homepages/23/d202161969/htdocs/client/simpletrading/log/cron_findOrder.log 2>&1
  */
 
 $Logger = new Logger('pulse', 1);
@@ -167,7 +170,7 @@ if(is_array($Ledger->List) && count($Ledger->List) > 0) {
 if(TRADE_ALERT && TRADE_ALERT_AUTOMATIC) {
     $sent = 0;
     $History = new History();
-    $alertList = array('5m' => 300, '15m' => 900, '1h' => 3600, '2h' => 7200, '12h' => 43200); // , '1d' => 86400
+    $alertList = array('5m' => 300, '15m' => 900, '1h' => 3600, '2h' => 7200); // , '1d' => 86400
     foreach($alertList as $range => $time) {
         if(!$sent) {
             $History->getTick(date('Y-m-d H:i:s', time()-$time));

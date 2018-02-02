@@ -1,154 +1,137 @@
-var auto_refresh;
+var auto_refresh
 function startAutoRefresh() {
-    auto_refresh = setInterval(function () {
-        //location.reload();
-        window.location.href = "index.php?refresh=1";
-    }, 60000);
-} 
-
+  auto_refresh = setInterval(function() {
+    //location.reload();
+    window.location.href = 'index.php?refresh=1'
+  }, 60000)
+}
 
 $(document).ready(function() {
+  $('#price').keyup(function() {
+    var order = $("#orderAction input[type='radio']:checked").val()
+    var price = $('#price').val()
 
-    $("#price").keyup(function() {
+    var volume = 0
+    var total = 0
 
-        var order   = $("#orderAction input[type='radio']:checked").val();
-        var price   = $("#price").val();
-      
-        var volume = 0;
-        var total = 0;
+    if (order == 'buy') {
+      total = $('#total').val()
+      volume = Math.round(total / price * 100000) / 100000
 
-        if(order == 'buy') {
-            total = $("#total").val();
-            volume = Math.round(total / price * 100000 ) / 100000;
+      $('#volume').val(volume)
+    } else {
+      volume = $('#volume').val()
+      total = Math.round(volume * price * 100) / 100
 
-            $("#volume").val(volume);
-
-        }
-        else {
-            volume = $("#volume").val();
-            total = Math.round(volume * price * 100 ) / 100;
-
-            $("#total").val(total);
-
-        }
-
-        updateScalp(price);
-
-    });
-
-    $("#stopLoss_active").click(function() {
-        updateScalp();
-    });
-
-    $("#takeProfit_active").click(function() {
-        updateScalp();
-    });
-
-    $("#stopLoss_rate").keyup(function() {
-        updateScalp();
-    });
-
-    $("#takeProfit_rate").keyup(function() {
-        updateScalp();
-    });
-
-
-    function updateScalp(price = 0) {
-
-        if(price == 0) {
-            price = $("#price").val();
-        }
-
-        if($("#takeProfit_active").is(":checked")) {
-            var takeProfit        = $("#takeProfit_rate").val();
-            var takeProfitPrice   = Math.round(price * (1 + takeProfit/100 ) * 100) / 100;
-            $("#takeProfit_price").html(takeProfitPrice + " EUR");
-        }
-
-        if($("#stopLoss_active").is(":checked")) {
-            var stopLoss        = $("#stopLoss_rate").val();
-            var stopLossPrice   = Math.round(price / (1 + stopLoss/100 ) * 100) / 100;
-            $("#stopLoss_price").html(stopLossPrice + " EUR");
-        }
+      $('#total').val(total)
     }
 
+    updateScalp(price)
+  })
 
+  $('#stopLoss_active').click(function() {
+    updateScalp()
+  })
 
+  $('#takeProfit_active').click(function() {
+    updateScalp()
+  })
 
+  $('#stopLoss_rate').keyup(function() {
+    updateScalp()
+  })
 
-    $("#UpdateBalanceZEUR").click(function() {
+  $('#takeProfit_rate').keyup(function() {
+    updateScalp()
+  })
 
-        var balance  = Math.round(($("#BalanceZEUR").val() * 100 )) / 100;
-        $("#total").val(balance);
+  function updateScalp(price = 0) {
+    if (price == 0) {
+      price = $('#price').val()
+    }
 
-    });
+    if ($('#takeProfit_active').is(':checked')) {
+      var takeProfit = $('#takeProfit_rate').val()
+      var takeProfitPrice =
+        Math.round(price * (1 + takeProfit / 100) * 100) / 100
+      $('#takeProfit_price').html(takeProfitPrice + ' EUR')
+    }
 
-    $("#UpdateBalanceXETH").click(function() {
+    if ($('#stopLoss_active').is(':checked')) {
+      var stopLoss = $('#stopLoss_rate').val()
+      var stopLossPrice = Math.round(price / (1 + stopLoss / 100) * 100) / 100
+      $('#stopLoss_price').html(stopLossPrice + ' EUR')
+    }
+  }
 
-        var balance  = Math.round(($("#BalanceXETH").val() * 100000 )) / 100000;
-        $("#volume").val(balance);
+  $('#UpdateBalanceZEUR').click(function() {
+    var balance = Math.round($('#BalanceZEUR').val() * 100) / 100
+    $('#total').val(balance)
+  })
 
-    });
+  $('#UpdateBalanceXETH').click(function() {
+    var balance = Math.round($('#BalanceXETH').val() * 100000) / 100000
+    $('#volume').val(balance)
+  })
 
-    
-    $("#auto-refresh").click(function () {
-
-        if ( $(this).hasClass( "play" ) ) {
-
-            console.log("Start auto-refresh");
-            $(this).removeClass("play").removeClass("btn-success").addClass("pause").addClass("btn-warning");
-            $("#auto-refresh span").removeClass("glyphicon-play").addClass("glyphicon-pause");
-            startAutoRefresh();
-
-        }
-        else {
-
-            console.log("Pause auto-refresh");
-            $(this).removeClass("pause").removeClass("btn-warning").addClass("play").addClass("btn-success");
-            $("#auto-refresh span").removeClass("glyphicon-pause").addClass("glyphicon-play");
-            clearInterval(auto_refresh);
-
-        }
-
-    });
-
-});
-
-
-
-
+  $('#auto-refresh').click(function() {
+    if ($(this).hasClass('play')) {
+      console.log('Start auto-refresh')
+      $(this)
+        .removeClass('play')
+        .removeClass('btn-success')
+        .addClass('pause')
+        .addClass('btn-warning')
+      $('#auto-refresh span')
+        .removeClass('glyphicon-play')
+        .addClass('glyphicon-pause')
+      startAutoRefresh()
+    } else {
+      console.log('Pause auto-refresh')
+      $(this)
+        .removeClass('pause')
+        .removeClass('btn-warning')
+        .addClass('play')
+        .addClass('btn-success')
+      $('#auto-refresh span')
+        .removeClass('glyphicon-pause')
+        .addClass('glyphicon-play')
+      clearInterval(auto_refresh)
+    }
+  })
+})
 
 // Load the Visualization API
-google.charts.load('current', {packages: ['corechart', 'line', 'table']});
-
+google.charts.load('current', { packages: ['corechart', 'line', 'table'] })
 
 // Table Open Orders
-google.charts.setOnLoadCallback(drawTableOpen);
+google.charts.setOnLoadCallback(drawTableOpen)
 function drawTableOpen() {
-
-    var jsonData = $.ajax({
-    url: "table.ajax.php",
-    data: {limit: 10, status: 'open'},
-    dataType: "json",
+  var jsonData = $.ajax({
+    url: 'table.ajax.php',
+    data: { limit: 10, status: 'open' },
+    dataType: 'json',
     cache: false,
     //method: "POST",
     async: false,
-    }).responseText;
+  }).responseText
 
-    console.log(jsonData);
+  console.log(jsonData)
 
-    var data = new google.visualization.DataTable(jsonData);
+  var data = new google.visualization.DataTable(jsonData)
 
-    var options = {
-        allowHtml: true,
-        /*showRowNumber: true,
+  var options = {
+    allowHtml: true,
+    /*showRowNumber: true,
         width: '100%',
         height: '100%'*/
-    }
+  }
 
-    var table = new google.visualization.Table(document.getElementById('table_open_div'));
+  var table = new google.visualization.Table(
+    document.getElementById('table_open_div')
+  )
 
-    table.draw(data, options);
+  table.draw(data, options)
 }
 
 /*// Table Closed Orders
@@ -182,113 +165,113 @@ function drawTableClosed() {
 }*/
 
 // Chart short
-google.charts.setOnLoadCallback(drawChartShort);
+google.charts.setOnLoadCallback(drawChartShort)
 function drawChartShort() {
-
-    var jsonData = $.ajax({
-    url: "chart.ajax.php",
-    data: {unit: '1m'},
-    dataType: "json",
+  var jsonData = $.ajax({
+    url: 'chart.ajax.php',
+    data: { unit: '1m' },
+    dataType: 'json',
     cache: false,
     //method: "POST",
     async: false,
-    }).responseText;
+  }).responseText
 
-    //jsonData = jsonData.replace(/\"({v[^v]*})\"/gi,"$1");
+  //jsonData = jsonData.replace(/\"({v[^v]*})\"/gi,"$1");
 
-    // Create our data table out of JSON data loaded from server.
-    var data = new google.visualization.DataTable(jsonData);
+  // Create our data table out of JSON data loaded from server.
+  var data = new google.visualization.DataTable(jsonData)
 
-    var options = {
-        title: '30m analysis',
-        legend: 'none',
-        pointSize: 0,
-        hAxis: {
-            format: 'H:mm',                      
-        },
-        vAxis: {
-            format: '###,###,###.00 '.TRADE_FIAT_SYMBOL, //'currency'
-        },
-        trendlines: {
-            0: {color: '#f7275b', opacity: .4, visibleInLegend: false},
-        }
-        
-    };
+  var options = {
+    title: '30m analysis',
+    legend: 'none',
+    pointSize: 0,
+    hAxis: {
+      format: 'H:mm',
+    },
+    vAxis: {
+      format: '###,###,###.00 €', //.TRADE_FIAT_SYMBOL, //'currency'
+    },
+    trendlines: {
+      0: { color: '#f7275b', opacity: 0.4, visibleInLegend: false },
+    },
+  }
 
-    var chart = new google.visualization.LineChart(document.getElementById('chart_short_div'));
+  var chart = new google.visualization.LineChart(
+    document.getElementById('chart_short_div')
+  )
 
-    chart.draw(data, options);
+  chart.draw(data, options)
 }
-
 
 // Chart Medium
-google.charts.setOnLoadCallback(drawChartMedium);
+google.charts.setOnLoadCallback(drawChartMedium)
 function drawChartMedium() {
+  var jsonData = $.ajax({
+    url: 'chart.ajax.php',
+    data: { unit: '30m' },
+    dataType: 'json',
+    cache: true,
+    async: false,
+  }).responseText
 
-    var jsonData = $.ajax({
-        url: "chart.ajax.php",
-        data: {unit: '30m'},
-        dataType: "json",
-        cache: true,
-        async: false
-    }).responseText;
+  // Create our data table out of JSON data loaded from server.
+  var data = new google.visualization.DataTable(jsonData)
 
-    // Create our data table out of JSON data loaded from server.
-    var data = new google.visualization.DataTable(jsonData);
+  var options = {
+    title: '24H analysis',
+    legend: 'none',
+    pointSize: 0,
+    hAxis: {
+      format: 'H:mm',
+    },
+    vAxis: {
+      format: '###,###,###.00 €', //.TRADE_FIAT_SYMBOL, //'currency'
+    },
+    trendlines: {
+      0: { color: '#f7275b', opacity: 0.4, visibleInLegend: false },
+    },
+  }
 
-    var options = {
-        title: '24H analysis',
-        legend: 'none',
-        pointSize: 0,
-        hAxis: {
-            format: 'H:mm',                      
-        },
-        vAxis: {
-            format: '###,###,###.00 '.TRADE_FIAT_SYMBOL, //'currency'
-        },
-        trendlines: {
-            0: {color: '#f7275b', opacity: .4, visibleInLegend: false},
-        }
-    };
+  var chart = new google.visualization.LineChart(
+    document.getElementById('chart_medium_div')
+  )
 
-    var chart = new google.visualization.LineChart(document.getElementById('chart_medium_div'));
-
-    chart.draw(data, options);
+  chart.draw(data, options)
 }
 
-
 // Chart Long
-google.charts.setOnLoadCallback(drawChartLong);
+google.charts.setOnLoadCallback(drawChartLong)
 function drawChartLong() {
+  var jsonData = $.ajax({
+    url: 'chart.ajax.php',
+    data: { unit: '12h' },
+    dataType: 'json',
+    cache: true,
+    async: false,
+  }).responseText
 
-    var jsonData = $.ajax({
-        url: "chart.ajax.php",
-        data: {unit: '12h'},
-        dataType: "json",
-        cache: true,
-        async: false
-    }).responseText;
+  // Create our data table out of JSON data loaded from server.
+  var data = new google.visualization.DataTable(jsonData)
 
-    // Create our data table out of JSON data loaded from server.
-    var data = new google.visualization.DataTable(jsonData);
+  var options = {
+    title: '15D analysis',
+    legend: 'none',
+    pointSize: 0,
+    curveType: 'function',
+    hAxis: {
+      format: 'MMM dd',
+    },
+    vAxis: {
+      format: '###,###,###.00 €', //.TRADE_FIAT_SYMBOL, //'currency'
+    },
+    trendlines: {
+      0: { color: '#f7275b', opacity: 0.4, visibleInLegend: false },
+    },
+  }
 
-    var options = {
-        title: '15D analysis',
-        legend: 'none',
-        pointSize: 0,
-        curveType: 'function',
-        hAxis: {
-            format: 'MMM dd',
-        },
-        vAxis: {
-            format: '###,###,###.00 '.TRADE_FIAT_SYMBOL, //'currency'
-        },
-        trendlines: {
-            0: {color: '#f7275b', opacity: .4, visibleInLegend: false},
-        }
-    };
+  var chart = new google.visualization.LineChart(
+    document.getElementById('chart_long_div')
+  )
 
-    var chart = new google.visualization.LineChart(document.getElementById('chart_long_div'));
-
-    chart.draw(data, options);
+  chart.draw(data, options)
 }
