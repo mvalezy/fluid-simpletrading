@@ -33,9 +33,9 @@ if($Ledger->selectEmptyReference() === true) {
         }
 
         // 2- ORDER NOT FOUND on Exchange > Retry Order
-        elseif($detail->status != 'canceled') {
+        elseif($detail->status == 'open') {
 
-            // RETRY only if Order is 30 seconds Old
+            // RETRY only if Order is at least 30 seconds Old
             $addDate = strtotime($detail->addDate);
             $time = time()-30;
 
@@ -48,6 +48,12 @@ if($Ledger->selectEmptyReference() === true) {
                     $Ledger->updateReference($id);
                 }
             }
+        }
+
+        // 3- ARCHIVE ORDER
+        elseif($detail->status == 'canceled') {
+            echo $Logger->log('WARNING', "archiveOrder= $detail->updateDate($id)", 'Ledger');
+            $Ledger->archive($id);
         }
     }
 }

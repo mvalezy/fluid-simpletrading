@@ -274,6 +274,14 @@ class Ledger {
 
     }
 
+    public function archive($id) {
+
+        $query = "UPDATE trade_ledger SET reference = '' WHERE id = $id LIMIT 1;";
+
+        $sql = $this->db->query($query);
+        mysqlerr($this->db, $query);
+    }
+
     public function select($limit = 20) {
         $query = "SELECT * FROM trade_ledger ORDER BY addDate DESC LIMIT $limit;";
 
