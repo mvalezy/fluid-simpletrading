@@ -42,6 +42,7 @@ class Exchange {
 
 
     public function __construct($key = EXCHANGE_API_KEY, $secret = EXCHANGE_API_SECRET, $exchange = TRADE_EXCHANGE, $pair = TRADE_PAIR, $simulatorOnly = TRADE_SIMULATOR_ONLY) {
+
 		global $debug;
 		$this->debug = $debug;
 
@@ -50,12 +51,12 @@ class Exchange {
 
 		$this->simulatorOnly = $simulatorOnly;
 
-        // set which platform to use (beta or standard)
-        $beta = false;
-        $url = $beta ? 'https://api.beta.kraken.com' : 'https://api.kraken.com';
-        $sslverify = $beta ? false : true;
-        $version = 0;
-        $this->API = new \Payward\KrakenAPI($key, $secret, $url, $version, $sslverify);
+		// set which platform to use (beta or standard)
+		$beta = false;
+		$url = $beta ? 'https://api.beta.kraken.com' : 'https://api.kraken.com';
+		$sslverify = $beta ? false : true;
+		$version = 0;
+		$this->API = new \Payward\KrakenAPI($key, $secret, $url, $version, $sslverify);
     }
 
 

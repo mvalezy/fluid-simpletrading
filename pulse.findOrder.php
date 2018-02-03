@@ -33,7 +33,7 @@ if($Ledger->selectEmptyReference() === true) {
         }
 
         // 2- ORDER NOT FOUND on Exchange > Retry Order
-        elseif($Ledger->status != 'canceled') {
+        elseif($detail->status != 'canceled') {
 
             // RETRY only if Order is 30 seconds Old
             $addDate = strtotime($detail->addDate);
@@ -42,7 +42,7 @@ if($Ledger->selectEmptyReference() === true) {
             if($addDate < $time) {
                 // RETRY ORDER
                 if($Exchange->AddOrder($id) === true) {
-                    echo $Logger->log('WARNING', "createdOrder= $detail->volume-$detail->price($id)", 'Ledger');
+                    echo $Logger->log('WARNING', "createdOrder= (retry) $detail->volume-$detail->price($id)", 'Ledger');
                     // STORE Reference of Last Order
                     $Ledger->reference = $Exchange->reference;
                     $Ledger->updateReference($id);
