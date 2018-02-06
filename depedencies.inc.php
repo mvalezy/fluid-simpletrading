@@ -23,4 +23,6 @@ require_once('api/nma.api.php');
 // Open SQL connection
 $db = connecti();
 
+setlocale(LC_MONETARY, 'fr_FR.UTF-8');
+
 ?>

@@ -7,18 +7,21 @@ function startAutoRefresh() {
 }
 
 $(document).ready(function() {
+  
   $('#price').keyup(function() {
     var order = $("#orderAction input[type='radio']:checked").val()
-    var price = $('#price').val()
+    var price = $('#price').val();
 
-    var volume = 0
-    var total = 0
+    var volume = 0;
+    var total = 0;
 
     if (order == 'buy') {
+      
       total = $('#total').val()
       volume = Math.round(total / price * 100000) / 100000
-
+      
       $('#volume').val(volume)
+      
     } else {
       volume = $('#volume').val()
       total = Math.round(volume * price * 100) / 100
@@ -28,6 +31,36 @@ $(document).ready(function() {
 
     updateScalp(price)
   })
+  
+  
+  $('#volume').keyup(function() {
+    var volume = $('#volume').val()
+
+    var price = 0
+    var total = 0
+
+    price = $('#price').val()
+    total = Math.round(volume * price * 100) / 100
+
+    $('#total').val(total)
+
+    //updateScalp(price)
+  })
+  
+  $('#total').keyup(function() {
+    var total = $('#total').val();
+
+    var price = 0;
+    var volume = 0;
+
+    price = $('#price').val()
+    volume = Math.round(total / price * 100000) / 100000
+
+    $('#volume').val(volume)
+
+    //updateScalp(price)
+  })
+  
 
   $('#stopLoss_active').click(function() {
     updateScalp()
@@ -46,7 +79,7 @@ $(document).ready(function() {
   })
 
   function updateScalp(price = 0) {
-    if (price == 0) {
+    if (price === 0) {
       price = $('#price').val()
     }
 
@@ -109,7 +142,7 @@ google.charts.setOnLoadCallback(drawTableOpen)
 function drawTableOpen() {
   var jsonData = $.ajax({
     url: 'table.ajax.php',
-    data: { limit: 10, status: 'open' },
+    data: { limit: 6, status: 'open' },
     dataType: 'json',
     cache: false,
     //method: "POST",

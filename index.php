@@ -110,7 +110,7 @@ else {
                                         <h3>Balance</h3>
 
                                         <div class="col-xs-3 col-sm-6 col-lg-6">
-                                            <input id="UpdateBalanceZEUR" class="btn btn-<?php echo $cssEUR; ?>" type="button" value="<?php echo money_format('%i', $Balance['ZEUR']); ?>">
+                                            <input id="UpdateBalanceZEUR" class="btn btn-<?php echo $cssEUR; ?>" type="button" value="<?php echo money_format('%#1n', $Balance['ZEUR']); ?>">
                                             <input id="BalanceZEUR" type="hidden" value="<?php echo $Balance['ZEUR']; ?>">
                                         </div>
                                         <div class="col-xs-3 col-sm-6 col-lg-6">
@@ -121,13 +121,13 @@ else {
                                     <div class="col-xs-3 col-sm-6 col-lg-6">
                                         <h3>Value</h3>
                                         <div class="col-xs-12 col-sm-12 col-lg-12">
-                                            <?php echo money_format('%i', $Balance['XETHZEUR']); ?>
+                                            <?php echo money_format('%#1n', $Balance['XETHZEUR']); ?>
                                         </div>
                                     </div>
                                     <div class="col-xs-3 col-sm-6 col-lg-6">
                                         <h3>Last</h3>
                                         <div class="col-xs-12 col-sm-12 col-lg-12">
-                                            <?php echo money_format('%i', $last); ?>
+                                            <?php echo money_format('%#1n', $last); ?>
                                         </div>
                                     </div>
 
@@ -171,16 +171,16 @@ else {
                                             </div>
 
                                             <div class="form-group">
-                                                <div class="col-md-6">
+                                                <div class="col-md-6" id="orderAction">
                                                     <div class="radio">
                                                         <label>
-                                                            <input type="radio" name="orderAction" id="orderAction1" value="buy" <?php if($orderDefault=='buy' ) { echo ' checked'; }
+                                                            <input type="radio" name="orderAction" id="orderAction_radio1" value="buy" <?php if($orderDefault=='buy' ) { echo ' checked'; }
                                                                 ?>> Buy
                                                         </label>
                                                     </div>
                                                     <div class="radio">
                                                         <label>
-                                                            <input type="radio" name="orderAction" id="orderAction2" value="sell" <?php if($orderDefault=='sell' ) { echo ' checked';
+                                                            <input type="radio" name="orderAction" id="orderAction_radio2" value="sell" <?php if($orderDefault=='sell' ) { echo ' checked';
                                                                 } ?>> Sell
                                                         </label>
                                                     </div>
