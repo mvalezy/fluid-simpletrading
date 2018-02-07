@@ -42,10 +42,14 @@ if($Ledger->selectEmptyReference() === true) {
             if($addDate < $time) {
                 // RETRY ORDER
                 if($Exchange->AddOrder($id) === true) {
-                    echo $Logger->log('WARNING', "createdOrder= (retry) $detail->volume-$detail->price($id)", 'Ledger');
+                    echo $Logger->log('INFO', "createdOrder= (retry) $detail->volume-$detail->price($id) - $Exchange->Success", 'Ledger');
+
                     // STORE Reference of Last Order
                     $Ledger->reference = $Exchange->reference;
                     $Ledger->updateReference($id);
+                }
+                else {
+                    echo $Logger->log('ERROR', "createdOrder= (retry) $detail->volume-$detail->price($id) - $Exchange->Error", 'Ledger');
                 }
             }
         }

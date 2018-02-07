@@ -122,10 +122,15 @@ if(is_array($Ledger->List) && count($Ledger->List) > 0) {
 
         $Exchange = new Exchange();
         if($Exchange->AddOrder($Ledger->id) === true) {
+            echo $Logger->log('INFO', "createdOrder= (position) $detail->volume-$detail->price($id) - $Exchange->Success", 'Ledger');
+
             // STORE Reference of Last Order
             $Ledger->reference = $Exchange->reference;
             $Ledger->updateReference($Ledger->id);
         }
+        else {
+            echo $Logger->log('ERROR', "createdOrder= (position) $detail->volume-$detail->price($id) - $Exchange->Error", 'Ledger');
+       }
     }
 }
 
@@ -139,7 +144,7 @@ $Ledger->selectScalp($price);
 
 if(is_array($Ledger->List) && count($Ledger->List) > 0) {
    foreach($Ledger->List as $id => $detail) {
-       echo $Logger->log('WARNING', "scalp=sell $detail->volume-$price($id)", 'Ledger');
+       echo $Logger->log('INFO', "scalp=sell $detail->volume-$price($id)", 'Ledger');
 
        $Ledger->closeScalp($id);
 
@@ -155,9 +160,14 @@ if(is_array($Ledger->List) && count($Ledger->List) > 0) {
 
        $Exchange = new Exchange();
        if($Exchange->AddOrder($Ledger->id) === true) {
-           // STORE Reference of Last Order
-           $Ledger->reference = $Exchange->reference;
-           $Ledger->updateReference($Ledger->id);
+            echo $Logger->log('INFO', "createdOrder= (scalp) $detail->volume-$detail->price($id) - $Exchange->Success", 'Ledger');
+
+            // STORE Reference of Last Order
+            $Ledger->reference = $Exchange->reference;
+            $Ledger->updateReference($Ledger->id);
+       }
+       else {
+            echo $Logger->log('ERROR', "createdOrder= (scalp) $detail->volume-$detail->price($id) - $Exchange->Error", 'Ledger');
        }
    }
 }
